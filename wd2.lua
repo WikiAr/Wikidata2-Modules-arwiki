@@ -1,4 +1,4 @@
-local p = {}
+local wd2 = {}
 local Frame_args = {}
 local filterclaims = require("Module:Wikidata2/filter_claims")
 local sortclaims = require("Module:Wikidata2/sort_claims")
@@ -11,7 +11,7 @@ local Moduleflags
 local ModuleGlobes
 local Moduleweblink
 -- local formatera
-p.track_cat_done = false
+wd2.track_cat_done = false
 
 local config_title = 'Module:Wikidata2/config'
 local citetitle = "Module:Cite Q"
@@ -58,7 +58,7 @@ local function formatFromPattern(str, options)
 	return str
 end
 
-function No_Tracking_cat(options)
+local function No_Tracking_cat(options)
 	if isvalid(options.formatting) == "raw" or isvalid(options.formatting) == "sitelink" then
 		return true
 	end
@@ -124,7 +124,7 @@ function get_entityId(options)
 	return id or ""
 end
 
-function p.countSiteLinks(id)
+function wd2.countSiteLinks(id)
 	local numb = 0
 	local entity = mw.wikibase.getEntity(id)
 	if entity and entity.sitelinks then
@@ -520,7 +520,7 @@ function value_table_to_text(options, valuetable)
 	local max_num = tonumber(isvalid(options.hidden)) or config.max_claims_to_use_hidelist
 	if isvalids({ options.hidden, options.barlist }) and isntvalid(options["claim-function"]) and isntvalid(options["property-function"]) and #valuetable > max_num then
 		if isvalid(options.addTrackingCat) then
-			p.track_cat_done = true
+			wd2.track_cat_done = true
 			result = result .. addTrackingCategory(options)
 		end
 		result = add_box(result)
@@ -535,7 +535,7 @@ function add_suffix_pprefix(options, prop)
 	if isvalid(options.mainsuffix) then -- mainsuffix
 		prop = prop .. options.mainsuffix
 	end
-	if isvalid(options.addTrackingCat) and not p.track_cat_done then -- add tracking cat
+	if isvalid(options.addTrackingCat) and not wd2.track_cat_done then -- add tracking cat
 		prop = prop .. addTrackingCategory(options)
 	end
 	if isvalid(options.mainsuffixAfterIcon) then -- another suffix but after wikidata icon
@@ -652,10 +652,10 @@ function formatStatements(options, LuaClaims)
 	end
 	local result = ""
 	if #valuetable > 0 then
-		result = value_table_to_text(options, valuetable)
+		result = value_table_to_text(options, valuetable) or ""
 	end
 	if isntvalid(result) then
-		result = nil
+		return nil
 	end
 	return result
 end
@@ -803,7 +803,7 @@ function get_property1(options, item)
 		end
 	end
 	if isntvalid(caca) then
-		caca = formatStatements({
+		return formatStatements({
 			property = options.property1,
 			otherproperty = options.otherproperty1,
 			entityId = item,
@@ -1240,7 +1240,7 @@ function sitelink(id, wikisite)
 	return link
 end
 
-function p.formatAndCat(args)
+function wd2.formatAndCat(args)
 	if args == nil then
 		return nil
 	end
@@ -1253,20 +1253,20 @@ function p.formatAndCat(args)
 	end
 	if isvalid(args.value) then
 		local val = args.value .. addTrackingCategory(args)
-		val = p.addLinkBack(val, args.entity, args.property)
+		val = wd2.addLinkBack(val, args.entity, args.property)
 		return val
 	end
-	return p.formatStatementsFromLua(args)
+	return wd2.formatStatementsFromLua(args)
 end
 
-function p.getEntity(id)
+function wd2.getEntity(id)
 	if type(id) == "table" then
 		return id
 	end
 	return getEntityFromId(id)
 end
 
-function p.translate(str, rep1, rep2)
+function wd2.translate(str, rep1, rep2)
 	str = i18n[str] or str
 	if rep1 and (type(rep1) == "string") then
 		str = str:gsub("$1", rep1)
@@ -1277,7 +1277,7 @@ function p.translate(str, rep1, rep2)
 	return str
 end
 
-function p.getId(snak)
+function wd2.getId(snak)
 	if (snak.snaktype == "value") then
 		if snak.datavalue.type == "wikibase-entityid" then
 			return "Q" .. snak.datavalue.value["numeric-id"]
@@ -1285,9 +1285,9 @@ function p.getId(snak)
 	end
 end
 
-function p.addLinkBack(str, id, property)
+function wd2.addLinkBack(str, id, property)
 	if not id then
-		id = p.getEntity()
+		id = wd2.getEntity()
 	end
 	if not id then
 		return str
@@ -1315,15 +1315,15 @@ function p.addLinkBack(str, id, property)
 	return tostring(v)
 end
 
-function p.formatSnak(snak, options)
+function wd2.formatSnak(snak, options)
 	return formatSnak(snak, options)
 end
 
-function p.formatEntityId(entityId, options)
+function wd2.formatEntityId(entityId, options)
 	return formatEntityId(entityId, (options or {}))
 end
 
-function p.formatStatements(frame, key)
+function wd2.formatStatements(frame, key)
 	-- {{#invoke:Wikidata2|formatStatements|entityId=Q76|property=P19}}
 	-- {{#invoke:Wikidata2|fs|qid={{{qid|}}}|pid=P19}}
 	if frame.args then
@@ -1356,7 +1356,7 @@ function p.formatStatements(frame, key)
 	return prop
 end
 
-function p.formatStatementsFromLua(options, key) --	 main function but to use from lua module
+function wd2.formatStatementsFromLua(options, key) --	 main function but to use from lua module
 	if options then
 		if type(key) == "table" and key ~= {} then
 		else
@@ -1382,19 +1382,19 @@ function p.formatStatementsFromLua(options, key) --	 main function but to use fr
 	return s
 end
 
-function p.fs(frame, key)
+function wd2.fs(frame, key)
 	-- {{#invoke:Wikidata2|formatStatements|entityId=Q76|property=P19}}
 	-- {{#invoke:Wikidata2|fs|qid={{{qid|}}}|pid=P19}}
-	return p.formatStatements(frame, key)
+	return wd2.formatStatements(frame, key)
 end
 
-function p.getLabel(entity, lang)
+function wd2.getLabel(entity, lang)
 	return labelIn(lang, entity)
 end
 
 -- Return the site link for a given data item and a given site (the current site by default)
 
-function p.getSiteLink(frame)
+function wd2.getSiteLink(frame)
 	local site = frame.args[2] or frame.args.site
 	local id = frame.args[1] or frame.args.id
 	local count = frame.args.countsitelinks
@@ -1404,7 +1404,7 @@ function p.getSiteLink(frame)
 		end
 	end
 	if isvalid(count) then
-		return p.countSiteLinks(id)
+		return wd2.countSiteLinks(id)
 	end
 	local link = sitelink(id, site)
 	if isvalid(link) then
@@ -1413,49 +1413,49 @@ function p.getSiteLink(frame)
 end
 
 -- returns the page id (Q...) of the current page or nothing of the page is not connected to Wikidata
-function p.pageId(frame)
+function wd2.pageId(frame)
 	return mw.wikibase.getEntityIdForCurrentPage()
 end
 
-function p.descriptionIn(frame)
+function wd2.descriptionIn(frame)
 	local langcode = frame.args[1] or frame.args["lang"]
 	local id = frame.args[2] or frame.args["id"]
 	return descriptionIn(langcode, id)
 end
 
-function p.labelIn(frame)
+function wd2.labelIn(frame)
 	local langcode = frame.args[1] or frame.args["lang"]
 	local id = frame.args[2] or frame.args["id"]
 	return labelIn(langcode, id)
 end
 
-function p.EntityIdForTitle(frame)
+function wd2.EntityIdForTitle(frame)
 	local title = frame.args[1]
 	local str = mw.wikibase.getEntityIdForTitle(title)
 	--mw.log(str)
 	return str
 end
 
-function p.Qidfortitleandwiki(frame)
+function wd2.Qidfortitleandwiki(frame)
 	local title = mw.text.trim(frame.args[1] or "")
 	local wiki = mw.text.trim(frame.args[2] or "")
 	local str = mw.wikibase.getEntityIdForTitle(title, wiki)
 	return str
 end
 
-function p.isSubclass(frame)
+function wd2.isSubclass(frame)
 	Moduledump = require "Module:wikidata2/dump"
 	return Moduledump.isSubclass(frame)
 end
 
-function p.ViewSomething(frame)
+function wd2.ViewSomething(frame)
 	Moduledump = require "Module:wikidata2/dump"
 	return Moduledump.ViewSomething(frame)
 end
 
-function p.Dump(frame)
+function wd2.Dump(frame)
 	Moduledump = require "Module:wikidata2/dump"
 	return Moduledump.Dump(frame)
 end
 
-return p
+return wd2
