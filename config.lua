@@ -2,7 +2,7 @@ return {
     max_claims_to_use_hidelist = 5,
     max_number_of_ref = 7,
     i18n = {
-        local_lang = "ar",
+        local_lang = "ar",                                       -- mw.getContentLanguage():getCode()
         local_lang_qids = { ["P407"] = 13955, ["P282"] = 8196 }, -- Q13955 = "العربية", Q8196 = "أبجدية عربية"
         errors = {
             ["property-param-not-provided"] = "وسيط property غير متوفر.",

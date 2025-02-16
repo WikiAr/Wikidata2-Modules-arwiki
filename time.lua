@@ -1,16 +1,12 @@
 local p = {}
-------------------------------------------------------------------------------
--- module local variables and functions
 
-local wiki =
-{
+local wiki = {
 	langcode = mw.language.getContentLanguage().code
 }
 
--- internationalisation
 local i18n =
 {
-	["datetime"] =
+	datetime =
 	{
 		-- $1 is a placeholder for the actual number
 		[0]                = "$1 مليار سنة", --a الدقة:مليار سنة
@@ -29,17 +25,17 @@ local i18n =
 		[12]               = "j F Y ga", -- الدقة: ساعة
 		[13]               = "j F Y g:ia", -- الدقة: دقائق
 		[14]               = "j F Y g:i:sa", -- الدقة: ثواني
-		["beforenow"]      = "$1 ق.م", -- how to format negative numbers for precisions 0 to 5
-		["afternow"]       = "$1", -- how to format positive numbers for precisions 0 to 5
-		["bc"]             = '$1 "ق.م"', -- كيف طباعة السنوات السلبية
-		["ad"]             = "$1", -- كيف طباعة سنوات الإيجابية
+		beforenow          = "$1 ق.م", -- how to format negative numbers for precisions 0 to 5
+		afternow           = "$1", -- how to format positive numbers for precisions 0 to 5
+		bc                 = '$1 "ق.م"', -- كيف طباعة السنوات السلبية
+		ad                 = "$1", -- كيف طباعة سنوات الإيجابية
 		-- the following are for function getDateValue()
 		["default-format"] = "dmy", -- القيمة الافتراضية ل #3 (getDateValue)
 		["default-addon"]  = "ق.م", -- default value of the #4 (getDateValue)
 		["prefix-addon"]   = false, -- set to true for languages put "BC" in front of the
 		-- datetime string; or the addon will be suffixed
 		["addon-sep"]      = " ", -- separator between datetime string and addon (or inverse)
-		["format"]         = -- options of the 3rd argument
+		format             = -- options of the 3rd argument
 		{
 			["j F Y"] = "j F Y",
 			["dmy"] = "j F Y",
@@ -58,12 +54,12 @@ local i18n =
 			["ym"] = "Y-m"
 		}
 	},
-	["ordinal"] =
+	ordinal =
 	{
-		[1] = "",  --st
-		[2] = "",  --nd
-		[3] = "",  --rd
-		["default"] = "" --th
+		[1] = "", --st
+		[2] = "", --nd
+		[3] = "", --rd
+		default = "" --th
 	}
 }
 -- this function needs to be internationalised along with the above:
@@ -82,8 +78,8 @@ local function makeOrdinal(cardinal)
 end
 
 local function parseDateFull(timestamp, precision, date_format, date_addon)
-	local prefix_addon = i18n["datetime"]["prefix-addon"]
-	local addon_sep = i18n["datetime"]["addon-sep"]
+	local prefix_addon = i18n.datetime["prefix-addon"]
+	local addon_sep = i18n.datetime["addon-sep"]
 	local addon = ""
 
 	-- check for negative date
@@ -137,14 +133,14 @@ local function parseDateFull(timestamp, precision, date_format, date_addon)
 		return era
 	end
 
-	local _date_format = i18n["datetime"]["format"][date_format]
+	local _date_format = i18n.datetime.format[date_format]
 	if _date_format ~= nil then
 		-- check for precision is year and override supplied date_format
 		if precision == 9 then
-			_date_format = i18n["datetime"][9]
+			_date_format = i18n.datetime[9]
 		end
 		if precision == 10 and date_format ~= "y" then
-			_date_format = i18n["datetime"][10]
+			_date_format = i18n.datetime[10]
 		end
 		local year_suffix
 		local tstr = ""
@@ -184,7 +180,7 @@ function p.getdate(time1, options)
 	then
 		formatd = options.modifytime
 	else
-		formatd = i18n["datetime"]["default-format"]
+		formatd = i18n.datetime["default-format"]
 	end
 	local date_format = mw.text.trim(formatd)
 	local timestamp = time1.time
@@ -196,7 +192,7 @@ function p.getdate(time1, options)
 		timestamp = mw.ustring.gsub(timestamp, '%-00T', '-01T')
 	end
 
-	local date_addon = mw.text.trim(options.date_addon or i18n["datetime"]["default-addon"])
+	local date_addon = mw.text.trim(options.date_addon or i18n.datetime["default-addon"])
 	local tid = parseDateFull(timestamp, dateprecision, date_format, date_addon)
 	return tid
 end
