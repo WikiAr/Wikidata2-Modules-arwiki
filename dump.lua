@@ -1,12 +1,20 @@
 local p = {}
 
+local config_title = 'Module:Wikidata2/config'
+local sandbox = "ملعب"
+if nil ~= string.find(mw.getCurrentFrame():getTitle(), sandbox, 1, true) then
+	config_title = config_title .. "/" .. sandbox
+end
+local config = mw.loadData(config_title)
+
+
 local function isvalid(x)
-	if x and x ~= "" and x ~= "لا" then return x end
+	if x and x ~= nil and x ~= "" and x ~= config.i18n.no then return x end
 	return nil
 end
 
 local function isntvalid(x)
-	if not x or x == "" or x == nil then return true end
+	if not x or x == nil or x == "" then return true end
 	return false
 end
 
@@ -15,9 +23,6 @@ local function getEntityFromId(id)
 end
 
 function p.Subclass(options)
-	if options then
-		Frame_args = options
-	end
 	local parent = options.parent or ""
 	local id = options.id or ""
 	local Entity = getEntityFromId(id)
@@ -71,7 +76,7 @@ function p.ViewSomething(frame) -- from en:Module:Wikidata
 end
 
 function p.Dump(frame)
-	local warnDump = "[[تصنيف:Called function 'Dump' from module Wikidata]]"
+	local warnDump = "[[" .. config.i18n.categories.dump_warn_category .. "]]"
 	local f = (frame.args[1] or frame.args.id) and frame or frame:getParent()
 	local aa
 	if isvalid(f.args.id) then

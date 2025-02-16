@@ -1,10 +1,7 @@
----@diagnostic disable: undefined-global
-
 local p = {}
 local Frame_args = {}
 local filterclaims = require("Module:Wikidata2/filter_claims")
 local sortclaims = require("Module:Wikidata2/sort_claims")
-local config = mw.loadData('Module:Wikidata2/config')
 local Moduleill_wd2
 local Moduledump
 local ModuleTime
@@ -12,28 +9,29 @@ local Moduletext
 local Modulecite
 local Moduleflags
 local ModuleGlobes
+local Moduleweblink
 -- local formatera
-local weblink
 p.track_cat_done = false
+
+local config_title = 'Module:Wikidata2/config'
+local citetitle = "Module:Cite Q"
+local sandbox = "ملعب"
+
+if nil ~= string.find(mw.getCurrentFrame():getTitle(), sandbox, 1, true) then
+	citetitle = citetitle .. "/" .. sandbox
+	config_title = config_title .. "/" .. sandbox
+end
+local config = mw.loadData(config_title)
 
 local i18n = config.i18n
 
-local citetitle = "Module:Cite Q"
-if nil ~= string.find(mw.getCurrentFrame():getTitle(), i18n.sandbox, 1, true) then
-	citetitle = "Module:Cite Q/" .. i18n.sandbox
-end
-
-local falsetitles = config.falsetitles
-
-local skiip_items = config.skiip_items
-
 local function anyvalid(x)
-	if x and x ~= "" then return x end
+	if x and x ~= nil and x ~= "" then return x end
 	return nil
 end
 
 local function isvalid(x)
-	if x and x ~= "" and x ~= i18n.no then return x end
+	if x and x ~= nil and x ~= "" and x ~= i18n.no then return x end
 	return nil
 end
 
@@ -47,11 +45,11 @@ local function isvalids(xs)
 end
 
 local function isntvalid(x)
-	if not x or x == "" or x == nil then return true end
+	if not x or x == nil or x == "" then return true end
 	return false
 end
 
-function formatFromPattern(str, options)
+local function formatFromPattern(str, options)
 	-- [[  function to replace $1 with string  ]]
 	if isvalid(options.pattern) then
 		str = string.gsub(str, "%%", "%%%%")
@@ -72,7 +70,7 @@ function No_Tracking_cat(options)
 		return true
 	end
 	local pagetitle = mw.title.getCurrentTitle().text
-	for _, title in pairs(falsetitles) do
+	for _, title in pairs(config.falsetitles) do
 		if string.find(pagetitle, title, 1, true) then
 			--mw.log("notracking for title with: " .. title)
 			return true
@@ -104,7 +102,7 @@ function catewikidatainfo(options)
 	end
 	local cat = ""
 	local prop = options.property
-	cat = cat .. " [[" .. i18n.tracking_category .. "|" .. (prop or "wikidata") .. "]]"
+	cat = cat .. " [[" .. i18n.categories.tracking_category .. "|" .. (prop or "wikidata") .. "]]"
 	if isntvalid(options.nolink) then
 		return cat
 	else
@@ -209,9 +207,9 @@ function labelIn(langcode, id) -- returns item label for a given language
 	return mw.wikibase.getLabelByLang(id, langcode) or nil
 end
 
-function filter_langs(claims, options)
+local function filter_langs(claims)
 	local claims7 = {}
-	local local_lang_qids = config.local_lang_qids
+	local local_lang_qids = config.i18n.local_lang_qids
 
 	for _, statement in pairs(claims) do
 		for prop, id in pairs(local_lang_qids) do
@@ -239,11 +237,11 @@ end
 
 ]]
 
-function getEntityFromId(id)
+local function getEntityFromId(id)
 	return isvalid(id) and mw.wikibase.getEntity(id) or mw.wikibase.getEntity()
 end
 
-function formatError(key)
+local function formatError(key)
 	return i18n.errors[key]
 end
 
@@ -252,12 +250,12 @@ function formatDatavalue(datavalue, datatype, options)
 	if isvalid(options["value-module"]) and isvalid(options["value-function"]) then
 		local formatter = require("Module:" .. options["value-module"])
 		if not formatter then
-			return { value = formatError("value-module-not-found") }
+			return { value = formatError("value_module_not_found") }
 		end
 
 		local fun = formatter[options["value-function"]]
 		if not fun then
-			return { value = formatError("value-function-not-found") }
+			return { value = formatError("value_function_not_found") }
 		end
 
 		return { value = fun(datavalue, datatype, options) }
@@ -302,7 +300,7 @@ function formatSnak(snak, options)
 		end
 		return s
 	else
-		return { value = formatError("unknown-snak-type") }
+		return { value = formatError("unknown_snak_type") }
 	end
 end
 
@@ -313,12 +311,12 @@ function formatStatement(statement, options)
 	if isvalid(claimModule) and isvalid(claimFunction) then
 		local formatter = require("Module:" .. claimModule)
 		if not formatter then
-			return { value = formatError("claim-module-not-found") }
+			return { value = formatError("claim_module_not_found") }
 		end
 
 		local fun = formatter[claimFunction]
 		if not fun then
-			return { value = formatError("claim-function-not-found") }
+			return { value = formatError("claim_function_not_found") }
 		end
 
 		return { value = fun(statement, options) }
@@ -341,8 +339,9 @@ function formatStatement(statement, options)
 		return formatSnak(statement, options)
 	end
 
-	return { value = formatError("unknown-claim-type") }
+	return { value = formatError("unknown_claim_type") }
 end
+
 function formatOneStatement(statement, ref, options)
 	local value = nil
 	local stat = formatStatement(statement, options)
@@ -434,7 +433,7 @@ function formatOneStatement(statement, ref, options)
 			value = s .. t
 		end
 	end
-
+	stat.value = value
 	return { v = value, raw = stat }
 end
 
@@ -474,7 +473,7 @@ function add_box(value)
 			style =
 			"text-align:right; padding: 0; font-size: 75%;"
 		})
-		:wikitext("&nbsp;[[File:Incomplete list.svg|20x20px|link=]] " .. i18n.list .. " ...")
+		:wikitext("&nbsp;[[" .. "File:Incomplete list.svg|20x20px|link=]] " .. i18n.list .. " ...")
 	formattedvalue
 		:addClass('mw-collapsible-content')
 	divNavHead = mw.html.create('div'):node(divNavHead)
@@ -554,7 +553,7 @@ function formatStatements(options, LuaClaims)
 	end
 
 	if isntvalid(options.property) then
-		return formatError("property-param-not-provided")
+		return formatError("property_param_not_provided")
 	end
 	local option1 = options.option1
 	if option1 and options.option1value then
@@ -606,7 +605,7 @@ function formatStatements(options, LuaClaims)
 	end
 
 	if isntvalid(options.langpref) then
-		claims = filter_langs(claims, options)
+		claims = filter_langs(claims)
 	end
 	if isvalid(options.sort_before_filter) then
 		claims = sortclaims.sort_claims(claims, options)
@@ -624,11 +623,11 @@ function formatStatements(options, LuaClaims)
 		if isvalid(options["property-module"]) and isvalid(options["property-function"]) then
 			local formatter = require("Module:" .. options["property-module"])
 			if not formatter then
-				return formatError("property-module-not-found")
+				return formatError("property_module_not_found")
 			end
 			local fun = formatter[options["property-function"]]
 			if not fun then
-				return formatError("property-function-not-found")
+				return formatError("property_function_not_found")
 			end
 
 			mw.log("work with property-module: " .. options["property-module"] .. "|" .. options["property-function"])
@@ -685,7 +684,7 @@ function formatReferences(statement, options)
 
 	local final = table.concat(reference)
 	if isvalid(final) then
-		final = final .. i18n.cateref
+		final = final .. ("[[%s]]"):format(i18n.categories.cateref)
 	end
 	return final or ""
 end
@@ -799,7 +798,7 @@ function get_property1(options, item)
 		end
 		if isvalid(flag) then     -- return real image
 			if isvalid(options.image) then -- return real image
-				caca = "[[File:" .. flag .. "|" .. size .. "px|" .. "border" .. "]]"
+				caca = "[[" .. "File:" .. flag .. "|" .. size .. "px|" .. "border" .. "]]"
 			end
 		end
 	end
@@ -833,7 +832,7 @@ function formatwikibaseitem(datavalue, datatype, options)
 	--[[  datatype	wikibase-item	]]
 	local value
 	local itemqid = datavalue.value.id
-	local Skipped = skiip_items[options.property] or {}
+	local Skipped = config.skip_items[options.property] or {}
 	for k, v in pairs(Skipped) do
 		if datavalue.value.id == v then
 			return { value = "", item = "" }
@@ -888,7 +887,7 @@ function formatwikibaseitem(datavalue, datatype, options)
 				nolink = options.nolink
 			})
 			if isvalid(vas) then
-				return { value = vas }
+				return { value = vas, item = itemqid }
 			end
 		elseif isvalid(options.property2) then
 			local caca = formatStatements({
@@ -903,7 +902,7 @@ function formatwikibaseitem(datavalue, datatype, options)
 				firstvalue = "t"
 			})
 			if isvalid(caca) then
-				return { value = caca .. " " .. itemValue }
+				return { value = caca .. " " .. itemValue, item = itemqid }
 			end
 		end
 	end
@@ -944,7 +943,7 @@ function formatcommonsMedia(datavalue, datatype, options)
 		size = size .. "px";
 	end
 	if isvalid(options.image) then -- return real image
-		tid = "[[File:" .. datavalue.value .. "|" .. size .. ""
+		tid = "[[" .. "File:" .. datavalue.value .. "|" .. size .. ""
 		if isvalid(options.center) then
 			tid = tid .. "|center"
 		end
@@ -1138,10 +1137,10 @@ function formaturl(datavalue, datatype, options)
 		label = i18n.official_site
 	end
 	if isvalid(options.displayformat) == "weblink" then
-		if weblink == nil then
-			weblink = require("Module:Weblink")
+		if Moduleweblink == nil then
+			Moduleweblink = require("Module:Weblink")
 		end
-		return { value = weblink.makelink(va) }
+		return { value = Moduleweblink.makelink(va) }
 	end
 	if isvalid(options.formatting) == "raw" then
 		return { value = va }
@@ -1303,7 +1302,7 @@ function p.addLinkBack(str, id, property)
 	if property then
 		class = "wd_" .. string.lower(property)
 	end
-	local icon = "[[File:Blue pencil.svg|%s|10px|baseline|class=noviewer|link=%s]]"
+	local icon = "[[" .. "File:Blue pencil.svg|%s|10px|baseline|class=noviewer|link=%s]]"
 	local title = i18n["see-wikidata-value"]
 	local url = mw.uri.fullUrl("d:" .. id, "uselang=" .. i18n.local_lang)
 	url.fragment = property

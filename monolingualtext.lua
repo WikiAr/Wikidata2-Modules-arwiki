@@ -1,6 +1,13 @@
 local p = {}
 local lang_module = require("وحدة:لغات")
 
+local config_title = 'Module:Wikidata2/config'
+local sandbox = "ملعب"
+if nil ~= string.find(mw.getCurrentFrame():getTitle(), sandbox, 1, true) then
+    config_title = config_title .. "/" .. sandbox
+end
+local config = mw.loadData(config_title)
+
 local function isvalid(value)
     return value and value ~= "" and value or nil
 end
@@ -30,7 +37,7 @@ end
 function p._main(datavalue, datatype, options)
     local lang_code = datavalue.value.language
     local text = datavalue.value.text
-    local lang_name = mw.language.fetchLanguageName(lang_code, "ar")
+    local lang_name = mw.language.fetchLanguageName(lang_code, config.i18n.lang_code)
 
     if lang_code == "mis" or lang_code == "mul" then -- Unsupported language
         return text
@@ -41,24 +48,24 @@ function p._main(datavalue, datatype, options)
     if nolang == lang_code then
         return ""
     end
+    local same_lang = lang_name == config.i18n.lang_name or lang_code == config.i18n.lang_code
+
     if isvalid(options.langpref) then
         if options.langpref == "justlang" then
             return lang_name
         elseif options.langpref == "langcode" then
             return lang_code
-        else
-            if lang_code == options.langpref then
-                if isvalid(options.textformat) == "text" or isvalid(options.formatting) == "text" or lang_name == "العربية" or lang_code == "ar" then
-                    return text
-                elseif isvalid(options.showlang) then
-                    return full_temp(lang_code, lang_name, text)
-                else
-                    return short_temp(lang_code, text)
-                end
+        elseif lang_code == options.langpref then
+            if isvalid(options.textformat) == "text" or isvalid(options.formatting) == "text" or same_lang then
+                return text
+            elseif isvalid(options.showlang) then
+                return full_temp(lang_code, lang_name, text)
+            else
+                return short_temp(lang_code, text)
             end
         end
     else
-        if lang_name == "العربية" or lang_code == "ar" then
+        if same_lang then
             return text
         elseif isvalid(options.showlang) then
             return full_temp(lang_code, lang_name, text)

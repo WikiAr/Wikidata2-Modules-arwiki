@@ -1,7 +1,7 @@
 local p = {}
 
 local function is_valid(x)
-	if x and x ~= "" then return x end
+	if x and x ~= nil and x ~= "" then return x end
 	return nil
 end
 

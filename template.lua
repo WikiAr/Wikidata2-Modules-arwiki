@@ -1,14 +1,19 @@
 local p = {}
 local track = require('وحدة:Wikidata/تتبع').makecategory1
 
-function one_temp(statement, options)
+local function isvalid(x)
+	if x and x ~= nil and x ~= "" then return x end
+	return nil
+end
+
+local function one_temp(statement, options)
 	local Args = {}
 	p = options
 	p.enbarten = 'true'
 
 	local s = formatSnak(statement.mainsnak, options).value
 
-	if not s or s == "" then return "" end
+	if not isvalid(s) then return "" end
 
 	if statement.references and options.reff and options.reff ~= '' then
 		s = s .. formatReferences(statement, options)
@@ -60,9 +65,13 @@ function p.temp(claims, options)
 
 	local function make_lab(numb, q)
 		local val = options[q]
-		if options[val] and options[val] ~= "" then Labs[numb] = options[val] elseif val and val ~= "" then Labs[numb] =
-			mw.wikibase.label(val) end
-		if val and val ~= "" then lenth = lenth + 1 end
+		if isvalid(options[val]) then
+			Labs[numb] = options[val]
+		elseif isvalid(val) then
+			Labs[numb] =
+				mw.wikibase.label(val)
+		end
+		if isvalid(val) then lenth = lenth + 1 end
 	end
 
 	make_lab(0, "Q0")

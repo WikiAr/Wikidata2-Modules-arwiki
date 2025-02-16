@@ -6,8 +6,8 @@ This module provides a number of basic mathematical operations.
 
 local yesno, getArgs -- lazily initialized
 
-local p = {} -- Holds functions to be returned from #invoke, and functions to make available to other Lua modules.
-local wrap = {} -- Holds wrapper functions that process arguments from #invoke. These act as intemediary between functions meant for #invoke and functions meant for Lua.
+local p = {}         -- Holds functions to be returned from #invoke, and functions to make available to other Lua modules.
+local wrap = {}      -- Holds wrapper functions that process arguments from #invoke. These act as intemediary between functions meant for #invoke and functions meant for Lua.
 
 function p._round(value, precision)
 	local rescale = math.pow(10, precision or 0);
@@ -15,6 +15,9 @@ function p._round(value, precision)
 end
 
 function p.newFromWikidataValue(frame)
+	if not tonumber(frame.amount) then
+		return "" -- Error: Non-numeric amount.
+	end
 	local upperBound = frame.upperBound or frame.amount
 	local lowerBound = frame.lowerBound or frame.amount
 	local diff = math.abs(tonumber(upperBound) - tonumber(frame.amount))
@@ -23,8 +26,7 @@ function p.newFromWikidataValue(frame)
 		diff = diff2
 	end
 
-	-- TODO, att fixa så att inte 1234.000 'huggs av' till 1234
-	local lang = mw.language.new( 'ar' )
+	local lang = mw.language.new(mw.getContentLanguage():getCode())
 	if diff == 0 then
 		return lang:formatNum(tonumber(frame.amount))
 	else
@@ -33,13 +35,15 @@ function p.newFromWikidataValue(frame)
 	end
 end
 
-local mt = { __index = function(t, k)
-	return function(frame)
-		if not getArgs then
-			getArgs = require('Module:Arguments').getArgs
+local mt = {
+	__index = function(t, k)
+		return function(frame)
+			if not getArgs then
+				getArgs = require('Module:Arguments').getArgs
+			end
+			return wrap[k](getArgs(frame)) -- Argument processing is left to Module:Arguments. Whitespace is trimmed and blank arguments are removed.
 		end
-		return wrap[k](getArgs(frame))  -- Argument processing is left to Module:Arguments. Whitespace is trimmed and blank arguments are removed.
 	end
-end }
+}
 
 return setmetatable(p, mt)

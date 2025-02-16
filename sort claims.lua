@@ -11,7 +11,7 @@ p.sorting_methods = {
 }
 
 local function isvalid(x)
-    if x and x ~= "" and x ~= "لا" then return x end
+    if x and x ~= nil and x ~= "" and x ~= "لا" then return x end
     return nil
 end
 

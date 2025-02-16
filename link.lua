@@ -1,12 +1,17 @@
 local p = {}
 
+local function isvalid(x)
+	if x and x ~= nil and x ~= "" then return x end
+	return nil
+end
+
 local function formatcharacters_(label, options)
 	local formatc = options.formatcharacters
 
-	if options.illwd2y and options.illwd2y ~= '' then
+	if isvalid(options.illwd2y) then
 		return mw.ustring.match(label, "%d%d%d%d", 1) or label
 	end
-	if not formatc or formatc == '' then
+	if not isvalid(formatc) then
 		return label
 	end
 
@@ -35,13 +40,13 @@ function p.year(datavalue, datatype, options)
 		end
 		local link = mw.wikibase.sitelink(id)
 		if link and (not options.nolink or options.nolink == '') then
-			if label and label ~= '' then
+			if isvalid(label) then
 				ret = '[[:' .. link .. '|' .. formatcharacters_(label, options) .. ']]' .. catewikidatainfo(options)
 			else
 				ret = '[[:' .. link .. '|' .. formatcharacters_(link, options) .. ']]' .. catewikidatainfo(options)
 			end
 		else
-			if label and label ~= '' then
+			if isvalid(label) then
 				ret = Labelfunction(id, label, options)
 			end
 		end

@@ -62,6 +62,12 @@ local i18n =
 		default = "" --th
 	}
 }
+
+local function isvalid(x)
+	if x and x ~= nil and x ~= "" then return x end
+	return nil
+end
+
 -- this function needs to be internationalised along with the above:
 -- we need three exceptions in English for 1st, 2nd, 3rd
 -- takes cardinal numer as a numeric and returns the ordinal as a string
@@ -176,7 +182,7 @@ end
 
 function p.getdate(time1, options)
 	local formatd
-	if options.modifytime and options.modifytime ~= ""
+	if isvalid(options.modifytime)
 	then
 		formatd = options.modifytime
 	else

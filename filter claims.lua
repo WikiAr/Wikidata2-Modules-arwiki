@@ -1,21 +1,23 @@
----@diagnostic disable: undefined-global
-
 local p = {}
+local config_title = 'Module:Wikidata2/config'
+local sandbox = "ملعب"
+if nil ~= string.find(mw.getCurrentFrame():getTitle(), sandbox, 1, true) then
+	config_title = config_title .. "/" .. sandbox
+end
+local config = mw.loadData(config_title)
 
 local function isvalid(x)
-	if x and x ~= "" then
-		return x
-	end
+	if x and x ~= nil and x ~= "" then return x end
 	return nil
 end
 
 local function isntvalid(x)
-	if not x or x == "" or x == nil then return true end
+	if not x or x == nil or x == "" then return true end
 	return false
 end
 
 
-function getEntityFromId(id)
+local function getEntityFromId(id)
 	return isvalid(id) and mw.wikibase.getEntityObject(id) or mw.wikibase.getEntityObject()
 end
 
@@ -30,8 +32,7 @@ function p.get_snak_id(snak)
 		snak.mainsnak.datavalue.value.id
 	then
 		--ID = 'Q' .. snak.datavalue.value['numeric-id']
-		ID = snak.mainsnak.datavalue.value.id
-		return ID
+		return snak.mainsnak.datavalue.value.id
 	end
 end
 
@@ -175,9 +176,9 @@ local function claims_offset(claims, offset)
 	return claims
 end
 
-local function filter_langs(claims, options)
+local function filter_langs(claims)
 	local claims7 = {}
-	local arabic_id = { ["P407"] = 13955, ["P282"] = 8196 } -- Q13955 = "العربية", Q8196 = "أبجدية عربية"
+	local arabic_id = config.local_lang_qids
 
 	for _, statement in pairs(claims) do
 		for prop, id in pairs(arabic_id) do
@@ -199,7 +200,7 @@ local function filter_langs(claims, options)
 	return claims
 end
 
-function getonly(claims, options)
+local function getonly(claims, options)
 	--[[
 	-- options.getonly
 	-- options.getonlyproperty
@@ -229,7 +230,7 @@ function getonly(claims, options)
 	return claims2
 end
 
-function dontget(claims, options)
+local function dontget(claims, options)
 	--[[
 	options.dontget
 	options.dontgetproperty
@@ -305,8 +306,8 @@ function p.filter_claims(claims, options)
 		claims = prefervalue(claims, options)
 	end
 
-	if not options.langpref or options.langpref == "" then
-		claims = filter_langs(claims, options)
+	if not isvalid(options.langpref) then
+		claims = filter_langs(claims)
 	end
 
 	local firstvalue = options.enbarten or options.firstvalue
