@@ -1,10 +1,11 @@
 local p = {}
-local config_title = 'Module:Wikidata2/config'
+
 local sandbox = "ملعب"
+local sandbox_added = ""
 if nil ~= string.find(mw.getCurrentFrame():getTitle(), sandbox, 1, true) then
-	config_title = config_title .. "/" .. sandbox
+	sandbox_added = "/" .. sandbox
 end
-local config = mw.loadData(config_title)
+local config = mw.loadData('Module:Wikidata2/config' .. sandbox_added)
 
 local function isvalid(x)
 	if x and x ~= nil and x ~= "" then return x end

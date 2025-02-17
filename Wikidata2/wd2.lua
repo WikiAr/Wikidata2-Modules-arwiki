@@ -1,7 +1,5 @@
 local wd2 = {}
 local Frame_args = {}
-local filterclaims = require("Module:Wikidata2/filter_claims")
-local sortclaims = require("Module:Wikidata2/sort_claims")
 local Moduleill_wd2
 local Moduledump
 local ModuleTime
@@ -13,15 +11,17 @@ local Moduleweblink
 -- local formatera
 wd2.track_cat_done = false
 
-local config_title = 'Module:Wikidata2/config'
-local citetitle = "Module:Cite Q"
 local sandbox = "ملعب"
+local sandbox_added = ""
 
 if nil ~= string.find(mw.getCurrentFrame():getTitle(), sandbox, 1, true) then
-	citetitle = citetitle .. "/" .. sandbox
-	config_title = config_title .. "/" .. sandbox
+	sandbox_added = "/" .. sandbox
 end
-local config = mw.loadData(config_title)
+
+local config = mw.loadData('Module:Wikidata2/config' .. sandbox_added)
+local filterclaims = require("Module:Wikidata2/filter_claims" .. sandbox_added)
+local sortclaims = require("Module:Wikidata2/sort_claims" .. sandbox_added)
+local citetitle = "Module:Cite Q" .. sandbox_added
 
 local i18n = config.i18n
 
@@ -1168,7 +1168,7 @@ function Labelfunction(qid, arlabel, options) -- label with no arwiki sitelink
 
 	if isvalid(options.illwd2) then
 		if Moduleill_wd2 == nil then
-			Moduleill_wd2 = require("Module:Wikidata2/Ill-WD2")
+			Moduleill_wd2 = require("Module:Wikidata2/Ill-WD2" .. sandbox_added)
 		end
 		value = Moduleill_wd2.Ill_WD2_label(qid, arlabel, options)
 		--

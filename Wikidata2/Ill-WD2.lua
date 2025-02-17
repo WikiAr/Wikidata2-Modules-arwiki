@@ -1,5 +1,13 @@
 local p = {}
 
+local wd2_module
+
+local sandbox = "ملعب"
+local sandbox_added = ""
+if nil ~= string.find(mw.getCurrentFrame():getTitle(), sandbox, 1, true) then
+	sandbox_added = "/" .. sandbox
+end
+
 local function is_valid(x)
 	if x and x ~= nil and x ~= "" then return x end
 	return nil
@@ -21,9 +29,9 @@ function p.Ill_WD2_label(qid, arlabel, options)
 		temp_args.text = options.illwd2label
 	end
 	--local jlabel = mw.getCurrentFrame():expandTemplate { title = "Ill-WD2", args = temp_args }
-
-	local wd2_module = require("Module:Ill-WD2").link_from_lua
-
+	if wd2_module == nil then
+		wd2_module = require("Module:Ill-WD2" .. sandbox_added)
+	end
 	local jlabel = wd2_module(temp_args)
 
 	return jlabel
