@@ -1,14 +1,71 @@
 local p = {}
-local ModuleTime = require 'Module:wikidata2/time'
-local tempname = 'تاريخ الوفاة والعمر'
-local o3 = '[[تصنيف:صفحات بها تواريخ بحاجة لمراجعة]]'
 
-local agecat = { "111", "112", "116", "95", "96", "97", "98", "99", "100", "101", "102", "103", "104", "105", "106",
-    "107", "108", "110", "75", "91" }
+local sandbox = "ملعب"
+local sandbox_added = ""
+if nil ~= string.find(mw.getCurrentFrame():getTitle(), sandbox, 1, true) then
+    sandbox_added = "/" .. sandbox
+end
+
+local ModuleTime = require('Module:wikidata2/time' .. sandbox_added)
+
+local pp_config = {
+    tempname = 'تاريخ الوفاة والعمر',
+    time_addon = ' ق م',
+    age_word = 'العمر ',
+    year_word = 'سنة',
+    dates_need_review = "صفحات بها تواريخ بحاجة لمراجعة",
+    add_birth_and_death_categories = true,
+    deaths_at_age = 'وفيات بعمر ',
+    category_starts = {
+        P569 = 'مواليد ',
+        P570 = 'وفيات ',
+    },
+}
 
 local function isvalid(x)
     if x and x ~= nil and x ~= "" then return x end
     return nil
+end
+
+local function format_cat(x)
+    return ' [[' .. 'Category:' .. x .. ']]'
+end
+
+local function death_age_category(v)
+    if pp_config.add_birth_and_death_categories == false then
+        return ''
+    end
+    local v2 = tostring(v)
+    return format_cat(pp_config.deaths_at_age .. v2)
+end
+
+
+local function category(property, y, m, d)
+    if mw.title.getCurrentTitle().namespace ~= 0 then
+        return ''
+    end
+    --
+    if pp_config.add_birth_and_death_categories == false then
+        return ''
+    end
+    --
+    local prf = pp_config.category_starts[property]
+    --
+    local cat = ""
+    local cat2 = ""
+    if property == 'P569' then
+        if d and m then
+            cat2 = prf .. d .. ' ' .. m
+        end
+    end
+    if isvalid(y) and isvalid(prf) then
+        cat = format_cat(prf .. y)
+    end
+    local cate = ""
+    if isvalid(cat2) then
+        cate = format_cat(cat2)
+    end
+    return (cat or '') .. (cate or '')
 end
 
 local function getdatepart(time, option)
@@ -22,30 +79,6 @@ local function getdatepart(time, option)
         end
     end
 end
-
-local function category(property, y, m, d)
-    if mw.title.getCurrentTitle().namespace ~= 0 then return '' end
-    local prf = ""
-    local cat = ""
-    local cate = ""
-    local cat2 = ""
-    if property == 'P569'
-    then
-        prf = 'مواليد '
-        if d and m then cat2 = prf .. d .. ' ' .. m end
-    elseif property == 'P570'
-    then
-        prf = 'وفيات '
-    end
-    if isvalid(y) and isvalid(prf) then
-        cat = ' [[تصنيف:' .. prf .. y .. ']]'
-    end
-    if isvalid(cat2) then
-        cate = ' [[تصنيف:' .. cat2 .. ']]'
-    end
-    return (cat or '') .. (cate or '')
-end
-
 local function getprop(propertyID, modifytime, entity)
     local val = formatStatements({
         property = propertyID,
@@ -54,7 +87,7 @@ local function getprop(propertyID, modifytime, entity)
         noref = 'true',
         firstvalue = 'true'
     })
-    mw.log(val)
+    -- mw.log(val)
     return val
 end
 
@@ -63,65 +96,54 @@ local function mathyears(year, Ryear, month, Rmonth)
     --	Rmonth =Date( "%m" )
     --	Rday = os.date( "%e" )
     --	if string.sub(Ryear, 1, 1) == '-' then Ryear = '+' .. string.sub(Ryear, 2) end
-    local val = ""
-    if isvalid(month)
-    then
-        if Rmonth < month
-        then
-            val = Ryear - year - 1
+    --
+    year = year or 0
+    Ryear = Ryear or 0
+    --
+    local year_fixed = Ryear - year
+    --
+    local value = ""
+    --
+    if isvalid(month) then
+        if Rmonth < month then
+            value = year_fixed - 1
         else
-            if Rmonth > month
-            then
-                val = Ryear - year
+            if Rmonth > month then
+                value = year_fixed
             else
-                val = Ryear - year - 1 .. '&ndash;' .. Ryear - year
+                value = year_fixed - 1 .. '&ndash;' .. year_fixed
             end
         end
     else
-        val = Ryear - year - 1 .. '&ndash;' .. Ryear - year
-        --mw.log( "val.." .. val )
+        value = year_fixed - 1 .. '&ndash;' .. year_fixed
+        --mw.log( "value.." .. value )
+    end
+    if (year_fixed) < 0 or (year - Ryear) > 150 or (year_fixed) > 150 then
+        value = value .. format_cat(pp_config.dates_need_review)
     end
 
-    if (Ryear - year) < 0
-    then
-        val = val .. o3
-    elseif (Ryear - year) > 150
-    then
-        val = val .. o3
-    elseif (year - Ryear) > 150
-    then
-        val = val .. o3
-    end
-
-    return val
+    return value
 end
 
-local function age(v, pr, add, property)
+
+local function count_age(v, pr, add, property)
     -- local v_old = v
     if isvalid(add) then return '' else end
     --	if string.sub(Ryear, 1, 1) == '-' then Ryear = '+' .. string.sub(Ryear, 2) end
     --	val =  mathyears(year, Ryear, month, Rmonth)
-    local v2 = tostring(v)
     if isvalid(pr) then
-        v = 'العمر ' .. v
+        v = pp_config.age_word .. v
     end
-    local ii = ' (' .. v .. ' سنة)'
-    if property and property == "P570" then
-        Age_cat = false
-        for k, l in pairs(agecat) do
-            if v2 == l then
-                Age_cat = true
-            end
-        end
-        if Age_cat then
-            ii = ii .. '[[تصنيف:وفيات بعمر ' .. v .. ']]'
-        end
+    local ii = (" (%s %s)"):format(v, pp_config.year_word)
+
+    if isvalid(property) == "P570" then
+        ii = ii .. death_age_category(v)
     end
-    local start = mw.ustring.find(v, o3, 1, true)
+    local start = mw.ustring.find(v, format_cat(pp_config.dates_need_review), 1, true)
     if start == 0 or start == nil then
         return ii
     else
-        return o3
+        return format_cat(pp_config.dates_need_review)
     end
 end
 
@@ -157,145 +179,168 @@ local function mathfulldate(yb, mb, db, Yd, Md, Dd)
         vv = '0'
     end
     local val = (yd) - (yb) - (vv)
-    if (yd - yb) > 150 then val = val .. o3 elseif (yb - yd) > 150 then val = val .. o3 end
+
+    if (yd - yb) > 150 or (yb - yd) > 150 then
+        val = val .. format_cat(pp_config.dates_need_review)
+    end
     return val
 end
 
 local function linkdate(property, y, m, d)
     local year = ""
+    if y then
+        year = '[[' .. y .. ']]'
+    end
     local md = ""
-    if y then year = '[[' .. y .. ']]' end
-    if m
-    then
-        if d
-        then
+    if m then
+        if d then
             md = '[[' .. d .. ' ' .. m .. ']] '
         else
             md = '[[' .. m .. ']] '
         end
     else
-        year = 'سنة ' .. year
+        year = pp_config.year_word .. ' ' .. year
     end
-    return (md or '') .. year .. category(property, y, m, d)
+    return md .. year .. category(property, y, m, d)
 end
 
-local function getP570(P570precision, Timev, entity, P569precision, P569time)
-    local timev = ""
+local function getP570(P570precision, Timev, P569precision, P569time)
+    local time_v = ""
     local P570addon = ""
+    local P569addon = ""
     if string.sub(Timev, 1, 1) == '-' then
-        timev = '+' .. string.sub(Timev, 2)
-        P570addon = ' ق م'
+        time_v = '+' .. string.sub(Timev, 2)
+        P570addon = isvalid(pp_config.time_addon) or ""
     else
-        timev = Timev
+        time_v = Timev
     end
     if isvalid(P569time) then
         if string.sub(P569time, 1, 1) == '-' then
             P569time = '+' .. string.sub(P569time, 2)
-            P569addon = ' ق م'
+            P569addon = pp_config.time_addon
         end
     end
-    local Dyear = getdatepart(timev, 'y')
-    local Dmonth = getdatepart(timev, 'm')
-    local Dmonthname = mw.getContentLanguage():formatDate('F', timev)
-    local Dday = getdatepart(timev, 'd')
+    local Dyear = getdatepart(time_v, 'y')
+    local Dmonth = getdatepart(time_v, 'm')
+    local Dmonthname = mw.getContentLanguage():formatDate('F', time_v)
+    local Dday = getdatepart(time_v, 'd')
     local year = getdatepart(P569time, 'y')
     local month = getdatepart(P569time, 'm')
     -- local monthname = mw.getContentLanguage():formatDate('F', P569time)
     local day = getdatepart(P569time, 'd')
 
-    local dii = ""
-    if isvalid(P569precision) then
-        -- Death date is full
-        if P570precision == 11 or P570precision == '11' then
-            if P569precision == 11 or P569precision == '11' then
-                dii = mw.getCurrentFrame():expandTemplate { title = tempname, args = { Dyear, Dmonth, Dday, year, month,
-                    day } }
-            elseif P569precision == 10 or P569precision == '10' or P569precision == 9 or P569precision == '9' then
-                dii = linkdate('P570', Dyear .. (P570addon or ''), Dmonthname, Dday) ..
-                    age(mathyears(year, Dyear), '', P570addon or P569addon, "P570")
-            else
-                dii = ModuleTime.getdate({ time = Timev, precision = tonumber(P570precision) }, {})
-            end
+    P570precision = tonumber(P570precision)
+    P569precision = tonumber(P569precision)
 
-            -- Death date is year
-        elseif P570precision == 10 or P570precision == '10' then
-            dii = linkdate('P570', Dyear .. (P570addon or ''), Dmonthname) ..
-                age(mathyears(year, Dyear), '', P570addon or P569addon, "P570")
-        elseif P570precision == 9 or P570precision == '9' then
-            --#######################
-            if P569precision == 10 or P569precision == '10' or P569precision == 9 or P569precision == '9' then
-                dii = linkdate('P570', Dyear .. (P570addon or '')) ..
-                    age(mathyears(year, Dyear), '', P570addon or P569addon, "P570")
-            else
-                dii = linkdate('P570', Dyear .. (P570addon or ''))
-            end
-            --#######################
-        else
-            dii = ModuleTime.getdate({ time = Timev, precision = tonumber(P570precision) }, {})
-        end
-    else
+    local dii = ""
+    --
+    local year_do = mathyears(year, Dyear)
+    local addon = isvalid(P570addon) or isvalid(P569addon)
+    --
+    if not isvalid(P569precision) then
         -- no P569 date
-        if P570precision == 11 or P570precision == '11' then
-            dii = linkdate('P570', Dyear .. (P570addon or ''), Dmonthname, Dday)
-        elseif P570precision == 10 or P570precision == '10' then
-            dii = linkdate('P570', Dyear .. (P570addon or ''), Dmonthname)
-        elseif P570precision == 9 or P570precision == '9' then
-            dii = linkdate('P570', Dyear .. (P570addon or ''))
+        if P570precision == 11 then
+            dii = linkdate('P570', Dyear .. P570addon, Dmonthname, Dday)
+        elseif P570precision == 10 then
+            dii = linkdate('P570', Dyear .. P570addon, Dmonthname)
+        elseif P570precision == 9 then
+            dii = linkdate('P570', Dyear .. P570addon)
         else
-            dii = ModuleTime.getdate({ time = Timev, precision = tonumber(P570precision) }, {})
+            dii = ModuleTime.getdate({ time = Timev, precision = P570precision }, {})
         end
+        return dii
+    end
+    --
+    -- isvalid(P569precision) is valid
+    -- Death date is full
+    if P570precision == 11 then
+        if P569precision == 11 then
+            dii = mw.getCurrentFrame():expandTemplate {
+                title = pp_config.tempname,
+                args = {
+                    Dyear, Dmonth, Dday, year, month, day
+                } }
+        elseif P569precision == 10 or P569precision == 9 then
+            local age = count_age(year_do, '', addon, "P570")
+            dii = linkdate('P570', Dyear .. P570addon, Dmonthname, Dday) .. age
+        else
+            dii = ModuleTime.getdate({ time = Timev, precision = P570precision }, {})
+        end
+        -- Death date is year
+    elseif P570precision == 10 then
+        local age = count_age(year_do, '', addon, "P570")
+        dii = linkdate('P570', Dyear .. P570addon, Dmonthname) .. age
+        --
+    elseif P570precision == 9 then
+        if P569precision == 10 or P569precision == 9 then
+            local age = count_age(year_do, '', addon, "P570")
+            dii = linkdate('P570', Dyear .. P570addon) .. age
+        else
+            dii = linkdate('P570', Dyear .. P570addon)
+        end
+        --
+    else
+        dii = ModuleTime.getdate({ time = Timev, precision = P570precision }, {})
     end
     return dii
 end
 
-local function getP569(P569precision, Timev, entity, P570precision)
+local function getP569(P569precision, Timev, P570precision)
     local P569addon = ''
-    local timev = ''
+    local time_v = ''
     if string.sub(Timev, 1, 1) == '-' then
-        timev = '+' .. string.sub(Timev, 2)
-        P569addon = ' ق م'
+        time_v = '+' .. string.sub(Timev, 2)
+        P569addon = isvalid(pp_config.time_addon) or ''
     else
-        timev = Timev
+        time_v = Timev
     end
-    local year = getdatepart(timev, 'y')
-    local month = getdatepart(timev, 'm')
-    local monthname = mw.getContentLanguage():formatDate('F', timev)
-    local day = getdatepart(timev, 'd')
+    local year = getdatepart(time_v, 'y')
+    local month = getdatepart(time_v, 'm')
+    local monthname = mw.getContentLanguage():formatDate('F', time_v)
+    local day = getdatepart(time_v, 'd')
 
+    P570precision = tonumber(P570precision)
+    P569precision = tonumber(P569precision)
+    --
+    local current_year = tonumber(os.date("%Y"))
+    local current_month = tonumber(os.date("%m"))
+    --
     local val = ''
-    if isvalid(P570precision)
-    then
-        if P569precision == 11 or P569precision == '11'
+    if isvalid(P570precision) then
+        if P569precision == 11 then
+            val = linkdate('P569', year .. P569addon, monthname, day)
+        elseif P569precision == 10
         then
-            val = linkdate('P569', year .. (P569addon or ''), monthname, day)
-        elseif P569precision == 10 or P569precision == '10'
-        then
-            val = linkdate('P569', year .. (P569addon or ''), monthname)
-        elseif P569precision == 9 or P569precision == '9' then
-            val = linkdate('P569', year .. (P569addon or ''))
+            val = linkdate('P569', year .. P569addon, monthname)
+            --
+        elseif P569precision == 9 then
+            val = linkdate('P569', year .. P569addon)
+            --
         else
-            val = ModuleTime.getdate({ time = Timev, precision = tonumber(P569precision) }, {})
+            val = ModuleTime.getdate({ time = Timev, precision = P569precision }, {})
         end
     else
-        if P569precision == 11 or P569precision == '11'
-        then
+        if P569precision == 11 then
             local doo = mathfulldate(year, month, day)
-            val = linkdate('P569', year .. (P569addon or ''), monthname, day) .. age(doo, '', P569addon, "P569")
-        elseif P569precision == 10 or P569precision == '10'
-        then
-            val = linkdate('P569', year .. (P569addon or ''), monthname)
-                .. age(mathyears(year, tonumber(os.date("%Y")), month, tonumber(os.date("%m"))), '', P569addon, "P569")
-        elseif P569precision == '9' or P569precision == 9 then
-            val = linkdate('P569', year .. (P569addon or '')) ..
-                age(mathyears(year, tonumber(os.date("%Y"))), 't', P569addon, "P569")
+            local age = count_age(doo, '', P569addon, "P569")
+            val = linkdate('P569', year .. P569addon, monthname, day) .. age
+            --
+        elseif P569precision == 10 then
+            local year_t = mathyears(year, current_year, month, current_month)
+            local age = count_age(year_t, '', P569addon, "P569")
+            val = linkdate('P569', year .. P569addon, monthname) .. age
+            --
+        elseif P569precision == 9 then
+            local age = count_age(mathyears(year, current_year), 't', P569addon, "P569")
+            val = linkdate('P569', year .. P569addon) .. age
         else
-            val = ModuleTime.getdate({ time = Timev, precision = tonumber(P569precision) }, {})
+            val = ModuleTime.getdate({ time = Timev, precision = P569precision }, {})
         end
     end
-    return val -- .. (P569addon or '')
+    return val -- .. P569addon
 end
 
-local function propert(precision, timev, propertyID, entity)
+local function propert(precision, time_v, propertyID, entity)
     local P569precision = getprop('P569', 'precision', entity)
     local P569time = getprop('P569', 'q', entity)
     local P570precision = formatStatements({
@@ -310,9 +355,9 @@ local function propert(precision, timev, propertyID, entity)
     local val = ''
 
     if propertyID == 'P569' then
-        val = getP569(precision, timev, entity, P570precision)
+        val = getP569(precision, time_v, P570precision)
     elseif propertyID == 'P570' then
-        val = getP570(precision, timev, entity, P569precision, P569time)
+        val = getP570(precision, time_v, P569precision, P569time)
     end
     return val -- .. (addon or '')
 end
@@ -324,12 +369,12 @@ function p.getdate(datavalue, datatype, options)
     if datavalue.type == 'time'
     then
         local precision = tonumber(datavalue.value.precision)
-        local timev = datavalue.value.time
+        local time_v = datavalue.value.time
         if precision == 9 or precision == 10 then
-            timev = string.gsub(timev, '-00T', '-01T')
+            time_v = string.gsub(time_v, '-00T', '-01T')
         end
 
-        local tt = propert(precision, timev, propertyID, entity.id)
+        local tt = propert(precision, time_v, propertyID, entity.id)
         return tt
     end
 end
@@ -342,10 +387,10 @@ function p.test(frame)
         local val = ""
         if propertyID == 'P569'
         then
-            val = getP569(frame.args.P569pre, frame.args.P569time, entity, frame.args.P570pre)
+            val = getP569(frame.args.P569pre, frame.args.P569time, frame.args.P570pre)
         elseif propertyID == 'P570'
         then
-            val = getP570(frame.args.P570pre, frame.args.P570time, entity, frame.args.P569pre, frame.args.P569time)
+            val = getP570(frame.args.P570pre, frame.args.P570time, frame.args.P569pre, frame.args.P569time)
         end
 
         return val
