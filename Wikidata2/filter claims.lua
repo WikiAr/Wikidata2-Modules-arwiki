@@ -179,7 +179,7 @@ end
 
 local function filter_langs(claims)
 	local claims7 = {}
-	local arabic_id = config.local_lang_qids
+	local arabic_id = config.i18n.local_lang_qids
 
 	for _, statement in pairs(claims) do
 		for prop, id in pairs(arabic_id) do

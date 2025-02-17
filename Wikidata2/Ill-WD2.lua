@@ -32,7 +32,7 @@ function p.Ill_WD2_label(qid, arlabel, options)
 	if wd2_module == nil then
 		wd2_module = require("Module:Ill-WD2" .. sandbox_added)
 	end
-	local jlabel = wd2_module(temp_args)
+	local jlabel = wd2_module.link_from_lua(temp_args)
 
 	return jlabel
 end
