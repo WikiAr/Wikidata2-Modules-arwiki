@@ -48,18 +48,19 @@ function p.isSubclass(frame)
 end
 
 function p.ViewSomething(frame) -- from en:Module:Wikidata
-	local f = (frame.args[1] or frame.args.id) and frame or frame:getParent()
+	local MAX_ITERATIONS = 100  -- Prevent infinite loops
+	local f_args = (frame.args[1] or frame.args.id) and frame or frame:getParent()
 	local aa
-	if isvalid(f.args.id) then
-		aa = f.args.id
+	if isvalid(f_args.id) then
+		aa = f_args.id
 	end
 	local data = mw.wikibase.getEntity(aa)
 	if data == nil then
 		return nil
 	end
 	local i = 1
-	while true do
-		local index = f.args[i]
+	while i <= MAX_ITERATIONS do
+		local index = f_args[i]
 		if index == nil then
 			if type(data) == "table" then
 				return mw.text.jsonEncode(data, mw.text.JSON_PRESERVE_KEYS + mw.text.JSON_PRETTY)
@@ -76,19 +77,20 @@ function p.ViewSomething(frame) -- from en:Module:Wikidata
 end
 
 function p.Dump(frame)
+	local MAX_ITERATIONS = 100 -- Prevent infinite loops
 	local warnDump = "[[" .. config.i18n.categories.dump_warn_category .. "]]"
-	local f = (frame.args[1] or frame.args.id) and frame or frame:getParent()
+	local f_args = (frame.args[1] or frame.args.id) and frame or frame:getParent()
 	local aa
-	if isvalid(f.args.id) then
-		aa = f.args.id
+	if isvalid(f_args.id) then
+		aa = f_args.id
 	end
 	local data = mw.wikibase.getEntity(aa)
 	if data == nil then
 		return warnDump
 	end
 	local i = 1
-	while true do
-		local index = f.args[i]
+	while i <= MAX_ITERATIONS do
+		local index = f_args[i]
 		if index == nil then
 			return frame:extensionTag("source", mw.dumpObject(data), { lang = "lua" }) .. warnDump
 		end

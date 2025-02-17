@@ -8,8 +8,9 @@ if nil ~= string.find(mw.getCurrentFrame():getTitle(), sandbox, 1, true) then
 end
 local config = mw.loadData(config_title)
 
-local function isvalid(value)
-    return value and value ~= "" and value or nil
+local function isvalid(x)
+    if x and x ~= nil and x ~= "" and x ~= config.i18n.no then return x end
+    return nil
 end
 
 local function full_temp(lang_code, lang_name, text)
@@ -34,6 +35,18 @@ local function short_temp(lang_code, text)
     return template
 end
 
+local function getTemplateType(lang_code, lang_name, text, options, same_lang)
+    local text_format = isvalid(options.textformat) or isvalid(options.formatting)
+
+    if (lang_code == options.langpref and text_format == "text") or same_lang then
+        return text
+    elseif isvalid(options.showlang) then
+        return full_temp(lang_code, lang_name, text)
+    else
+        return short_temp(lang_code, text)
+    end
+end
+
 function p._main(datavalue, datatype, options)
     local lang_code = datavalue.value.language
     local text = datavalue.value.text
@@ -56,22 +69,10 @@ function p._main(datavalue, datatype, options)
         elseif options.langpref == "langcode" then
             return lang_code
         elseif lang_code == options.langpref then
-            if isvalid(options.textformat) == "text" or isvalid(options.formatting) == "text" or same_lang then
-                return text
-            elseif isvalid(options.showlang) then
-                return full_temp(lang_code, lang_name, text)
-            else
-                return short_temp(lang_code, text)
-            end
+            return getTemplateType(lang_code, lang_name, text, options, same_lang)
         end
     else
-        if same_lang then
-            return text
-        elseif isvalid(options.showlang) then
-            return full_temp(lang_code, lang_name, text)
-        else
-            return short_temp(lang_code, text)
-        end
+        return getTemplateType(lang_code, lang_name, text, options, same_lang)
     end
     return ""
 end

@@ -1,8 +1,11 @@
 if\s*(.*?)\s*and\s*\1\s*~=\s*['"]['"]
 if isvalid($1)
 
+(.*?)\s*and\s*\1\s*~=\s*['"]['"]
+isvalid($1)
 
 
-if\s*not\s*(.*?)\s*or\s*\1\s*==\s*['"]['"]
 
-if not isvalid($1)
+not\s*(.*?)\s*or\s*\1\s*==\s*['"]['"]
+
+not isvalid($1)
