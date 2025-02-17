@@ -181,6 +181,7 @@ end
 
 local function getP570(P570precision, Timev, entity, P569precision, P569time)
     local timev = ""
+    local P570addon = ""
     if string.sub(Timev, 1, 1) == '-' then
         timev = '+' .. string.sub(Timev, 2)
         P570addon = ' ق م'

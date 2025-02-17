@@ -17,8 +17,7 @@ end
 local function normalizeDate(date)
 	date = mw.text.trim(date, "+")
 	local yearstr = mw.ustring.match(date, "^-?%d+")
-	local year = yearstr
-	return year
+	return yearstr
 end
 
 local function sp(p, y)

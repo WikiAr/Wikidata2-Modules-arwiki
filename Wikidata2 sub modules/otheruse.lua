@@ -32,7 +32,7 @@ function p.foot(claims, options)
 		end
 	end
 	local tot = mw.text.listToText(formattedStatements, options.separator, options.conjunction)
-	if tot == '' then tot = nil end
+	if tot == "" then tot = nil end
 	if isvalid(options.raw) then
 		return statementsraw
 	end
@@ -69,8 +69,8 @@ function p.awards(datavalue, datatype, options) -- used by template:ص.م/سطر
 		qid = value.id,
 		noref = 'true',
 		firstvalue = 'true',
-		separator = '',
-		conjunction = '',
+		separator = "",
+		conjunction = "",
 		formatting = 'raw'
 	})
 	local categoryid2 = formatStatements({
@@ -78,8 +78,8 @@ function p.awards(datavalue, datatype, options) -- used by template:ص.م/سطر
 		qid = value.id,
 		noref = 'true',
 		firstvalue = 'true',
-		separator = '',
-		conjunction = '',
+		separator = "",
+		conjunction = "",
 		formatting = 'raw'
 	})
 
@@ -129,10 +129,6 @@ function p.getpropertyfromvalue(datavalue, datatype, options)
 	end
 end
 
---[[
-	this is like p.formatPlaceWithQualifiers in ru:Модуль:Wikidata/Places
-]]
-
 local function Statements(params, options)
 	local result = formatStatements({
 		property = params.property,
@@ -157,18 +153,6 @@ local function Statements(params, options)
 	return {}
 end
 
-local function concatenateStrings(s1, s2, s3)
-	if isvalid(s1) then
-		if isvalid(s2) then
-			return s1 .. '، ' .. s2
-		elseif s1 ~= s3 then
-			return s1 .. '، ' .. s3
-		else
-			return s1
-		end
-	end
-end
-
 function p.PlacesWithLocatedIn(datavalue, datatype, options)
 	if datatype ~= 'wikibase-item' then
 		return "datatype isn't wikibase-item"
@@ -176,30 +160,48 @@ function p.PlacesWithLocatedIn(datavalue, datatype, options)
 
 	local value = datavalue.value
 	local formattedValue = formatEntityId(value.id, options).value
-
 	local pid_to_search = isvalid(options.pid_to_search) or 'P131'
 
-	local P1 = Statements({ qid = value.id, formatting = '', property = pid_to_search }, options)
-	local P2 = Statements({ qid = P1.item, formatting = '', property = pid_to_search }, options)
-	local P3 = Statements({ qid = P2.item, formatting = '', property = pid_to_search }, options)
-	local P4 = Statements({ qid = P3.item, formatting = '', property = pid_to_search }, options)
-
-	local country1 = Statements({ qid = P3.item, formatting = '', property = 'P17' }, options)
-	local country2 = Statements({ qid = P2.item, formatting = '', property = 'P17' }, options)
-	local country3 = Statements({ qid = P1.item, formatting = '', property = 'P17' }, options)
-	local country4 = Statements({ qid = value.id, formatting = '', property = 'P17' }, options)
-
-	local result = formattedValue
 	local tab = {}
-	table.insert(tab, formattedValue)
-
+	--
 	if isvalid(formattedValue) then
-		local first_value = concatenateStrings(P3.value, P4.value, country1)
-		local second_value = concatenateStrings(P2.value, first_value, country2)
-		local third_value = concatenateStrings(P1.value, second_value, country3)
-		result = concatenateStrings(formattedValue, third_value, country4)
+		table.insert(tab, formattedValue)
 	end
+	--
+	local last_id = value.id
+	--
+	local i = 1
+	--
+	local max_items = isvalid(tonumber(options.max_items)) or 10
+	--
+	local no_limits = isvalid(options.no_limits)
+	--
+	while isvalid(last_id) do
+		--
+		if i >= max_items and not no_limits then
+			break
+		end
+		--
+		local value_x = Statements({ qid = last_id, formatting = "", property = pid_to_search }, options)
+		if isvalid(value_x.value) then
+			table.insert(tab, value_x.value)
+		end
+		last_id = value_x.item
+		i = i + 1
+	end
+	--
+	local country = Statements({ qid = last_id, formatting = "", property = 'P17' }, options)
 
+	if isvalid(country) then
+		table.insert(tab, country.value)
+	end
+	--
+	local options2 = options
+	options2.separator = isvalid(options2.separator) or '، '
+	local result = value_table_to_text(options2, tab)
+	--
+	-- if #tab > 15 then result = add_box(result) end
+	--
 	return result
 end
 
