@@ -8,20 +8,21 @@ end
 
 local function one_temp(statement, options)
 	local Args = {}
-	p = options
-	p.enbarten = 'true'
+
+	local opts = options
+	opts.enbarten = 'true'
 
 	local s = formatSnak(statement.mainsnak, options).value
 
 	if not isvalid(s) then return "" end
 
-	if statement.references and options.reff and options.reff ~= '' then
+	if statement.references and isvalid(options.reff) then
 		s = s .. formatReferences(statement, options)
 	end
 
 	local function tato(number, Q_n)
 		if Q_n then
-			p["property"] = Q_n
+			opts["property"] = Q_n
 			Args[number] = formatStatements({
 				property = Q_n,
 				firstvalue = "t",
@@ -45,6 +46,19 @@ local function one_temp(statement, options)
 		tato(11, options.Q10)
 	end
 	return Args
+end
+
+local function create_edit_at_wd(qid)
+	local content = ("[[ملف:Wikidata-logo.svg|20بك|link=d:%s#P54]] [[d:%s#P54|[تعديل في ويكي بيانات]]]")
+		:format(qid, qid)
+	local edit_at_wd = mw.html.create("tr")
+		:tag("td"):attr("scope", "col")
+		:css("background-color", "#F9F9F9")
+		:css("color", "#000000")
+		:css("text-align", "left")
+		:attr("colspan", 5)
+		:wikitext(content):done()
+	return tostring(edit_at_wd)
 end
 
 function p.temp(claims, options)
@@ -110,11 +124,10 @@ function p.temp(claims, options)
 			end
 		end
 	end
-	local temptitle = "صندوق معلومات سيرة كرة قدم/تعديل ويكي بيانات"
-	local content = mw.getCurrentFrame():expandTemplate { title = temptitle, args = { id = options.entityId or "" } }
+	local content = create_edit_at_wd(options.entityId)
 
 	if #Other > 0 then
-		local ed = tab:tag('tr')
+		tab:tag('tr')
 			:tag('td')
 			:attr('scope', 'col')
 			:css('background-color', '#F9F9F9')

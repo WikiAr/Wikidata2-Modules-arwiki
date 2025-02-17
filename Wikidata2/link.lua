@@ -6,6 +6,10 @@ local function isvalid(x)
 end
 
 local function formatcharacters_(label, options)
+	if not label then
+		return ""
+	end
+	label = mw.text.trim(label)
 	local formatc = options.formatcharacters
 
 	if isvalid(options.illwd2y) then
@@ -30,26 +34,25 @@ local function formatcharacters_(label, options)
 end
 
 function p.year(datavalue, datatype, options)
+	if datatype ~= 'wikibase-item' then
+		return ""
+	end
+	local id = datavalue.value.id
+	-- local value = formatEntityId(id, options).value
+	local label = isvalid(options.label) or mw.wikibase.label(id) or nil
+	local link = mw.wikibase.sitelink(id)
+
 	local ret = ""
-	if datatype == 'wikibase-item' then
-		local id = datavalue.value.id
-		-- local value = formatEntityId(id, options).value
-		local label = options.label or mw.wikibase.label(id)
-		if label == '' then
-			label = mw.wikibase.label(id) or nil
+	if link and not isvalid(options.nolink) then
+		local label_link = formatcharacters_(link, options)
+
+		if isvalid(label) then
+			label_link = formatcharacters_(label, options)
 		end
-		local link = mw.wikibase.sitelink(id)
-		if link and (not options.nolink or options.nolink == '') then
-			if isvalid(label) then
-				ret = '[[:' .. link .. '|' .. formatcharacters_(label, options) .. ']]' .. catewikidatainfo(options)
-			else
-				ret = '[[:' .. link .. '|' .. formatcharacters_(link, options) .. ']]' .. catewikidatainfo(options)
-			end
-		else
-			if isvalid(label) then
-				ret = Labelfunction(id, label, options)
-			end
-		end
+
+		ret = '[[:' .. link .. '|' .. label_link .. ']]' .. catewikidatainfo(options)
+	elseif isvalid(label) then
+		ret = Labelfunction(id, label, options)
 	end
 	return ret
 end

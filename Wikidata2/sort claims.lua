@@ -15,7 +15,7 @@ local function isvalid(x)
     return nil
 end
 
-local function comparedates(a, b) -- returns true if a is earlier than B or if a has a date but not b
+local function comparedates(a, b) -- returns true if a is earlier than B or if a but not b
     if a and b then
         return a > b
     elseif a then
@@ -37,44 +37,22 @@ local function getqualifierbysortingproperty(claim, sortingproperty)
     return nil
 end
 
-local function get_sorting_properties(options)
-    if type(options.sortingproperty) == "table" then
-        return options.sortingproperty
-    elseif type(options.sortingproperty) == "string" and options.sortingproperty ~= "" then
-        return mw.text.split(options.sortingproperty, ",")
+local function get_sorting_properties(sorting_properties_option)
+    if type(sorting_properties_option) == "table" then
+        return sorting_properties_option
+    elseif type(sorting_properties_option) == "string" and sorting_properties_option ~= "" then
+        return mw.text.split(sorting_properties_option, ",")
     else
         return p.sortingproperties
     end
 end
 
-local function sortbyqualifier(claims, sorting_properties, options)
+function p.sortbyqualifiernumber(claims, sorting_properties, sortingproperty_option, sort_by)
     if not sorting_properties or #sorting_properties == 0 then
-        sorting_properties = get_sorting_properties(options)
+        sorting_properties = get_sorting_properties(sortingproperty_option)
     end
 
-    local sort_by = p.sorting_methods[options.sortbytime] or options.sortbytime
-
-    table.sort(
-        claims,
-        function(a, b)
-            local timeA = getqualifierbysortingproperty(a, sorting_properties)
-            local timeB = getqualifierbysortingproperty(b, sorting_properties)
-            if sort_by == "inverted" then
-                return comparedates(timeB, timeA)
-            else
-                return comparedates(timeA, timeB)
-            end
-        end
-    )
-    return claims
-end
-
-function p.sortbyqualifiernumber(claims, sorting_properties, options)
-    if not sorting_properties or #sorting_properties == 0 then
-        sorting_properties = get_sorting_properties(options)
-    end
-
-    local sort_by = p.sorting_methods[options.sortbynumber] or options.sortbynumber
+    local sort_by = p.sorting_methods[sort_by] or sort_by
 
     table.sort(
         claims,
@@ -111,13 +89,10 @@ local function getDateArb(claim, sorting_properties)
     end
 end
 
-local function sortbyarb(claims, sorting_properties, options)
+local function sortbyarb(claims, sorting_properties, sortingproperty_option, sortingmethod)
     if not sorting_properties or #sorting_properties == 0 then
-        sorting_properties = get_sorting_properties(options)
+        sorting_properties = get_sorting_properties(sortingproperty_option)
     end
-    local sortingmethod = options.sortbyarbitrary or options.sortingmethod
-    --mw.log("sortbyarb: " .. sortingmethod)
-
     table.sort(
         claims,
         function(a, b)
@@ -135,19 +110,20 @@ end
 
 function p.sort_claims(claims, options)
     local sortingmethod = options.sortbyarbitrary or options.sortingmethod
-    local sorting_properties = get_sorting_properties(options)
+    local sorting_properties = get_sorting_properties(options.sortingproperty)
+
+    if not sorting_properties or #sorting_properties == 0 then
+        sorting_properties = p.sortingproperties
+    end
 
     if isvalid(options.sortbytime) and p.sorting_methods[options.sortbytime] then
-        if #sorting_properties == 0 then
-            sorting_properties = p.sortingproperties
-        end
-        claims = sortbyqualifier(claims, sorting_properties, options)
+        claims = p.sortbyqualifiernumber(claims, sorting_properties, options.sortingproperty, options.sortbytime)
         --
     elseif isvalid(options.sortbynumber) and p.sorting_methods[options.sortbynumber] then
-        claims = p.sortbyqualifiernumber(claims, sorting_properties, options)
+        claims = p.sortbyqualifiernumber(claims, sorting_properties, options.sortingproperty, options.sortbynumber)
         --
     elseif isvalid(sortingmethod) and p.sorting_methods[sortingmethod] then
-        claims = sortbyarb(claims, sorting_properties, options)
+        claims = sortbyarb(claims, sorting_properties, options.sortingproperty, sortingmethod)
     end
     return claims
 end
