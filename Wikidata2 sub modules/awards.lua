@@ -11,8 +11,10 @@ function p.awards(datavalue, datatype, options) -- used by template:ص.م/سطر
 		return ''
 	end
 	local value = datavalue.value
-	local image = formatStatements({ pid = 'P2425', qid = value.id, size = '30', image = 'yes', noref = 'true', firstvalue = 'true' })
-	local categoryid = formatStatements({ pid = 'P2517', qid = value.id, noref = 'true', firstvalue = 'true', formatting = 'raw' })
+	local image = formatStatements({ pid = 'P2425', qid = value.id, size = '30', image = 'yes', noref = 'true', firstvalue =
+	'true' })
+	local categoryid = formatStatements({ pid = 'P2517', qid = value.id, noref = 'true', firstvalue = 'true', formatting =
+	'raw' })
 	--[[
 	if not valid_v(categoryid) then
 		categoryid = formatStatements({ pid = 'P910', qid = value.id, noref = 'true', firstvalue = 'true', formatting = 'raw' })

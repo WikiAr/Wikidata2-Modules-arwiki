@@ -14,7 +14,7 @@ local function is_valid(x)
 end
 
 function p.Ill_WD2_label(qid, arlabel, options)
-	local temp_args = { fromlua = "t", ["المعرف"] = qid, nocat = "t" }
+	local temp_args = { fromlua = "t", id = qid, nocat = "t" }
 
 	local en_label = mw.wikibase.label(qid) or ""
 	if is_valid(options.illwd2noy) then temp_args.noy = "t" end

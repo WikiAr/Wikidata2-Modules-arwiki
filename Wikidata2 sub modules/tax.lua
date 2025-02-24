@@ -2,11 +2,11 @@
 
 local p = {}
 
-local data = require("Module:Wikidata2 sub modules/tax/cash")
-local Cash = data.Cash
+local data = require("Module:Wikidata2 sub modules/tax/cache")
+local Cache = data.Cache
 local colors = data.colors
 local taxP105 = data.taxP105
-local Cash2 = {}
+local Cache2 = {}
 
 local function isvalid(x)
 	if x and x ~= nil and x ~= "" then return x end
@@ -17,8 +17,8 @@ local function add_Tracking_Category(prop, options)
 	return prop .. addTrackingCategory(options)
 end
 
-local function FindInCash(id, prop)
-	local ca = Cash[id]
+local function FindInCache(id, prop)
+	local ca = Cache[id]
 	if ca and ca[prop] and ca[prop] ~= "" then
 		--mw.log(id .. " : " .. prop .. " : " .. ca[prop])
 		return ca[prop]
@@ -53,11 +53,11 @@ local function GetP171id(id)
 		return nil
 	end
 
-	if not Cash2[id] then
-		Cash2[id] = {}
+	if not Cache2[id] then
+		Cache2[id] = {}
 	end
 
-	local P171id = FindInCash(id, "P171")
+	local P171id = FindInCache(id, "P171")
 	if not P171id then
 		P171id = formatStatements({
 			property = "P171",
@@ -68,7 +68,7 @@ local function GetP171id(id)
 			formatting = "raw"
 		})
 		if isvalid(P171id) then
-			Cash2[id]["P171"] = P171id
+			Cache2[id]["P171"] = P171id
 		end
 	end
 	return P171id
@@ -101,7 +101,7 @@ local function taxonrank(iid)
 		return nil
 	end
 
-	local rank_raw = FindInCash(iid, "P105")
+	local rank_raw = FindInCache(iid, "P105")
 	if not rank_raw then
 		rank_raw = formatStatements({
 			property = "P105",
@@ -112,10 +112,10 @@ local function taxonrank(iid)
 			formatting = "raw"
 		})
 
-		if not Cash2[iid] then
-			Cash2[iid] = {}
+		if not Cache2[iid] then
+			Cache2[iid] = {}
 		end
-		Cash2[iid]["P105"] = rank_raw
+		Cache2[iid]["P105"] = rank_raw
 	end
 
 	if not isvalid(rank_raw) then
@@ -160,7 +160,7 @@ local function pro1(id)
 
 
 	if isvalid(id_r) then
-		label = FindInCash(id_r, "label")
+		label = FindInCache(id_r, "label")
 		if not label then
 			label = formatStatements({
 				property = "P171",
@@ -170,11 +170,11 @@ local function pro1(id)
 				firstvalue = "true"
 			})
 
-			if not Cash2[id_r] then
-				Cash2[id_r] = {}
+			if not Cache2[id_r] then
+				Cache2[id_r] = {}
 			end
 			if isvalid(label) then
-				Cash2[id_r]["label"] = label
+				Cache2[id_r]["label"] = label
 			end
 		end
 	end
@@ -238,11 +238,11 @@ local function gettax(value_id, coo, lll, options)
 		id_1 = s_id
 	end
 
-	for k, v in pairs(Cash2) do
+	for k, v in pairs(Cache2) do
 		if isvalid(v["P171"]) and v["P105"] and v["P105"] ~= "" then
 			mw.log(
 				string.format(
-					"Module:Wikidata2 sub modules/tax: Cash['%s'] = {['P105'] = '%s', ['P171'] = '%s', ['label'] = '%s'}",
+					"Module:Wikidata2 sub modules/tax: Cache['%s'] = {['P105'] = '%s', ['P171'] = '%s', ['label'] = '%s'}",
 					k,
 					v["P105"] or "",
 					v["P171"] or "",
