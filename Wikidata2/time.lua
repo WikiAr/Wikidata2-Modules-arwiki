@@ -158,7 +158,7 @@ local function parseDateFull(timestamp, precision, date_format, date_addon)
 		return era
 	end
 
-	local _date_format = i18n.format[date_format]
+	local _date_format = i18n.format[date_format] or i18n.format[i18n.default_format]
 	if _date_format ~= nil then
 		-- check for precision is year and override supplied date_format
 		if precision == i18n.precisions.year then
@@ -205,8 +205,7 @@ function p.getdate(time1, options)
 	end
 
 	local formatd
-	if isvalid(options.modifytime)
-	then
+	if isvalid(options.modifytime) then
 		formatd = options.modifytime
 	else
 		formatd = i18n.default_format

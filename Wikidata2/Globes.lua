@@ -1,4 +1,5 @@
-return { -- maps Wikidata items used in coordinate-types properties of Wikidat to globe names as used by geohack	['http://www.wikidata.org/entity/3338Q'] = 'umbriel',
+return { -- maps Wikidata items used in coordinate-types properties of Wikidat to globe names as used by geohack
+    ['http://www.wikidata.org/entity/3338Q'] = 'umbriel',
     ['http://www.wikidata.org/entity/Q2'] = 'earth',
     ['http://www.wikidata.org/entity/Q111'] = 'mars',
     ['http://www.wikidata.org/entity/Q193'] = 'saturn',

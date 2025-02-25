@@ -16,7 +16,7 @@ local i18n = {
         link = "وصلة",
         template_result = "نتيجة القالب",
         redirects = "التحويلات",
-        template_ISO_639_name = "اسم آيزو 639 %s",
+        template_ISO_639_name = "اسم آيزو 639",
         lang_name_prefix = "لغة",
         lang_name_prefix_with_the = "اللغة",
     },
@@ -237,8 +237,8 @@ function p.list()
     -- إنشاء الصفوف
     for code, tab in pairs(data.lang_table) do
         local lang_name = tab.name
-        local template_result = string.format("{{" .. i18n.list.template_ISO_639_name .. "}}", code)
-        local template_link = string.format("[[%s:" .. i18n.list.template_ISO_639_name .. "]]", i18n.ns_10_name, code)
+        local template_result = string.format("{{%s %s}}", i18n.list.template_ISO_639_name, code)
+        local template_link = string.format("[[%s:%s %s]]", i18n.ns_10_name, i18n.list.template_ISO_639_name, code)
 
         local lang_link = ("[[%s %s]]"):format(i18n.list.lang_name_prefix, lang_name)
         local full_lang_name = ("[[%s %s]]"):format(i18n.list.lang_name_prefix_with_the, gsubname(lang_name, "r", code))
@@ -252,7 +252,7 @@ function p.list()
         local redirects_cell = row:tag("td")
         redirects_cell:attr("dir", "ltr")
 
-        local codes = tab.codes
+        local codes = tab.codes and tab.codes or {}
         table.insert(codes, code)
         for _, v in pairs(codes) do
             if isvalid(v) then
