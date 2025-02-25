@@ -85,13 +85,14 @@ function p.IcoTitle(options)
             right = { "right" }
         }
     })
-    local colspan = tonumber(options.colspan) or 2;
-    local icon = trim(options.icon or 'Nuvola apps important.png');
-    local bg_color = trim_color(options.bg_color or 'E1E1E1');
-    local txt_color = trim_color(options.txt_color or '000000');
-    local aright = trim(options.right or '');
-    local ctxt1 = ''
-    local ctxt2 = ''
+
+    local colspan = tonumber(options.colspan) or 2
+    local icon = getValidValue(options.icon, DEFAULTS.DEFAULT_ICON)
+    local bgColor = trimColor(options.bg_color or DEFAULTS.TITLE_BG_COLOR)
+    local textColor = trimColor(options.txt_color or DEFAULTS.TITLE_TXT_COLOR)
+    local hasRightIcon = trim(options.right or '') ~= ''
+    local leftIcon = DEFAULTS.PLACEHOLDER_ICON
+    local rightIcon = icon
 
     if hasRightIcon then
         leftIcon = icon
@@ -117,8 +118,8 @@ function p.IcoTitle(options)
         :done()
         :tag('td')
         :attr('width', '80%')
-        :css('color', '#' .. txt_color)
-        :wikitext(trim(options.title))
+        :css('color', '#' .. textColor)
+        :wikitext(trim(options.title or ''))
         :done()
         :tag('td')
         :attr('width', '10%')
