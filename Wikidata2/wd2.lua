@@ -1,15 +1,7 @@
 local wd2 = {}
 local Frame_args = {}
-local Moduleill_wd2
-local Moduledump
-local ModuleTime
-local Moduletext
-local Modulecite
-local Moduleflags
-local ModuleGlobes
-local Moduleweblink
+local Moduleill_wd2, Moduledump, ModuleTime, Moduletext, Modulecite, Moduleflags, ModuleGlobes, Moduletrack
 -- local formatera
-wd2.track_cat_done = false
 
 local sandbox = "ملعب"
 local sandbox_added = ""
@@ -18,10 +10,20 @@ if nil ~= string.find(mw.getCurrentFrame():getTitle(), sandbox, 1, true) then
 	sandbox_added = "/" .. sandbox
 end
 
+wd2.track_cat_done = false
+
 local config = mw.loadData('Module:Wikidata2/config' .. sandbox_added)
 local filterclaims = require("Module:Wikidata2/filter_claims" .. sandbox_added)
 local sortclaims = require("Module:Wikidata2/sort_claims" .. sandbox_added)
-local citetitle = "Module:Cite Q" .. sandbox_added
+
+local Modules = {
+	CiteQ           = "Module:Cite Q" .. sandbox_added,
+	WD2             = "Module:wikidata2/Ill-WD2" .. sandbox_added,
+	monolingualtext = "Module:wikidata2/monolingualtext" .. sandbox_added,
+	time            = "Module:wikidata2/time" .. sandbox_added,
+	dump            = "Module:wikidata2/dump" .. sandbox_added,
+	track           = "Module:wikidata2/تتبع" .. sandbox_added,
+}
 
 local i18n = config.i18n
 
@@ -83,8 +85,10 @@ function addTrackingCategory(options)
 	if No_Tracking_cat(options) then
 		return ""
 	end
-	local cat = require("Module:Wikidata/تتبع").makecategory1
-	local category = cat(options)
+	if Moduletrack == nil then
+		Moduletrack = require(Modules.track)
+	end
+	local category = Moduletrack.makecategory1(options)
 	local nbsp = "&nbsp;"
 	if isvalid(options.nbsp) or isvalid(options.image) then
 		nbsp = ""
@@ -669,7 +673,7 @@ function formatReferences(statement, options)
 
 	if statementreferences then
 		if Modulecite == nil then
-			Modulecite = require(citetitle)
+			Modulecite = require(Modules.CiteQ)
 		end
 		for i, ref in ipairs(statementreferences) do
 			if ref.snaks and numberofref >= ic then
@@ -1019,7 +1023,7 @@ end
 function formattime(datavalue, datatype, options)
 	--[[  datatype	time  ]]
 	if ModuleTime == nil then
-		ModuleTime = require "Module:wikidata2/time"
+		ModuleTime = require(Modules.time)
 	end
 	local timen = datavalue.value
 	local tid = ModuleTime.getdate(timen, options)
@@ -1136,12 +1140,6 @@ function formaturl(datavalue, datatype, options)
 	if label == nil and options.property == "P856" then
 		label = i18n.official_site
 	end
-	if isvalid(options.displayformat) == "weblink" then
-		if Moduleweblink == nil then
-			Moduleweblink = require("Module:Weblink")
-		end
-		return { value = Moduleweblink.makelink(va) }
-	end
 	if isvalid(options.formatting) == "raw" then
 		return { value = va }
 	end
@@ -1155,7 +1153,7 @@ end
 function formatmonolingualtext(datavalue, datatype, options) -- showlang
 	local text = datavalue.value.text
 	if Moduletext == nil then
-		Moduletext = require "Module:wikidata2/monolingualtext"
+		Moduletext = require(Modules.monolingualtext)
 	end
 	local tid = Moduletext._main(datavalue, datatype, options)
 	return { value = tid }
@@ -1168,7 +1166,7 @@ function Labelfunction(qid, arlabel, options) -- label with no arwiki sitelink
 
 	if isvalid(options.illwd2) then
 		if Moduleill_wd2 == nil then
-			Moduleill_wd2 = require("Module:Wikidata2/Ill-WD2" .. sandbox_added)
+			Moduleill_wd2 = require(Modules.WD2)
 		end
 		value = Moduleill_wd2.Ill_WD2_label(qid, arlabel, options)
 		--
@@ -1444,17 +1442,17 @@ function wd2.Qidfortitleandwiki(frame)
 end
 
 function wd2.isSubclass(frame)
-	Moduledump = require "Module:wikidata2/dump"
+	Moduledump = require(Modules.dump)
 	return Moduledump.isSubclass(frame)
 end
 
 function wd2.ViewSomething(frame)
-	Moduledump = require "Module:wikidata2/dump"
+	Moduledump = require(Modules.dump)
 	return Moduledump.ViewSomething(frame)
 end
 
 function wd2.Dump(frame)
-	Moduledump = require "Module:wikidata2/dump"
+	Moduledump = require(Modules.dump)
 	return Moduledump.Dump(frame)
 end
 

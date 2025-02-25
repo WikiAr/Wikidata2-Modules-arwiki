@@ -1,6 +1,21 @@
 local p = {}
 local wl = require("وحدة:ص.م")
-local track = require("وحدة:Wikidata/تتبع").makecategory1
+local track = require("وحدة:Wikidata2/تتبع").makecategory1
+local i18n = {
+	file_prefix = mw.site.namespaces[6].name,
+	edit_at_wd_link = "[تعديل في ويكي بيانات]",
+	professional_career = "المسيرة&nbsp;الاحترافية",
+	national_team = "المنتخب&nbsp;الوطني",
+	youth = "الشباب",
+	teams = "الفرق",
+	years = "سنوات",
+	team = "فريق",
+	matches = "مباريات",
+	goals = "أهداف",
+	edit_at_wikidata = "[تعديل في ويكي بيانات]",
+	category_tracking = "[[تصنيف:فرق لاعب كرة من ويكي بيانات]][[تصنيف:صفحات تستخدم خاصية P54]]"
+}
+
 local teams_id = {
 	"Q476028",
 	"Q847017",
@@ -227,6 +242,7 @@ local function value_valid(x)
 	return nil
 end
 
+-- Update make_sub_title calls and table headers
 local function make_sub_title(title)
 	return wl.SubTitle({
 		title = title,
@@ -234,8 +250,7 @@ local function make_sub_title(title)
 		bg_color = "b0c4de",
 		txt_color = "000000",
 		colspan = 5
-	}
-	)
+	})
 end
 
 local function get_flag(countryID, date)
@@ -447,8 +462,8 @@ function p.football(statement, options)
 end
 
 local function create_edit_at_wd(qid)
-	local content = ("[[ملف:Wikidata-logo.svg|20بك|link=d:%s#P54]] [[d:%s#P54|[تعديل في ويكي بيانات]]]")
-		:format(qid, qid)
+	local content = ("[[%s:Wikidata-logo.svg|20px|link=d:%s#P54]] [[d:%s#P54|%s]]")
+		:format(i18n.file_prefix, qid, qid, i18n.edit_at_wd_link)
 	local edit_at_wd = mw.html.create("tr")
 		:tag("td"):attr("scope", "col")
 		:css("background-color", "#F9F9F9")
@@ -468,7 +483,7 @@ function p.foot(claims, options)
 	local icon = track({
 		property = "P54",
 		id = qid,
-		category = "[[تصنيف:فرق لاعب كرة من ويكي بيانات]][[تصنيف:صفحات تستخدم خاصية P54]]"
+		category = i18n.category_tracking
 	}) .. "&nbsp;"
 	local Nationals = {}
 	local Youths = {}
@@ -496,18 +511,18 @@ function p.foot(claims, options)
 			end
 		end
 	end
+
 	local fs = {}
 	local head = mw.html.create("tr")
-
 	head:attr("colspan", 5)
-	head:tag("td"):wikitext("'''سنوات'''")
-	head:tag("td"):wikitext("'''فريق'''")
-	head:tag("td"):wikitext("'''مباريات'''")
-	head:tag("td"):wikitext("'''أهداف'''")
+	head:tag("td"):wikitext("'''" .. i18n.years .. "'''")
+	head:tag("td"):wikitext("'''" .. i18n.team .. "'''")
+	head:tag("td"):wikitext("'''" .. i18n.matches .. "'''")
+	head:tag("td"):wikitext("'''" .. i18n.goals .. "'''")
 	local head_done = false
 
 	if #Other > 0 then
-		table.insert(fs, make_sub_title("الفرق" .. icon))
+		table.insert(fs, make_sub_title(i18n.teams .. icon))
 		if not head_done then
 			head_done = true
 			table.insert(fs, tostring(head))
@@ -516,7 +531,7 @@ function p.foot(claims, options)
 	end
 
 	if #Youths > 0 then
-		table.insert(fs, make_sub_title("الشباب" .. icon))
+		table.insert(fs, make_sub_title(i18n.youth .. icon))
 		if not head_done then
 			head_done = true
 			table.insert(fs, tostring(head))
@@ -525,7 +540,7 @@ function p.foot(claims, options)
 	end
 
 	if #Teams > 0 then
-		local subtitle = make_sub_title("المسيرة&nbsp;الاحترافية" .. icon)
+		local subtitle = make_sub_title(i18n.professional_career .. icon)
 		table.insert(fs, subtitle)
 		if not head_done then
 			head_done = true
@@ -536,7 +551,7 @@ function p.foot(claims, options)
 	end
 
 	if #Nationals > 0 then
-		table.insert(fs, make_sub_title("المنتخب&nbsp;الوطني" .. icon))
+		table.insert(fs, make_sub_title(i18n.national_team .. icon))
 		if not head_done then
 			head_done = true
 			table.insert(fs, tostring(head))
@@ -544,6 +559,7 @@ function p.foot(claims, options)
 		local Nationals_tot = mw.text.listToText(Nationals, options.separator, options.conjunction)
 		table.insert(fs, Nationals_tot)
 	end
+
 	if #fs > 0 then
 		local edit_at_wd = create_edit_at_wd(qid)
 		table.insert(fs, edit_at_wd)
