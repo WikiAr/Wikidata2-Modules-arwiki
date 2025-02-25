@@ -71,11 +71,21 @@ function p.Title(options)
 end
 
 function p.IcoTitle(options)
-    local colspan = tonumber(options[5]) or tonumber(options["colspan"]) or 2;
-    local icon = trim(options[3] or 'Nuvola apps important.png');
-    local bg_color = trim_color(options[2] or 'E1E1E1');
-    local txt_color = trim_color(options[4] or '000000');
-    local aright = trim(options['right'] or '');
+    options = getArgs(options, {
+        aliases = {
+            title = { 1 },
+            bg_color = { 2 },
+            icon = { 3 },
+            txt_color = { 4 },
+            colspan = { 5 },
+            right = { "right" }
+        }
+    })
+    local colspan = tonumber(options.colspan) or 2;
+    local icon = trim(options.icon or 'Nuvola apps important.png');
+    local bg_color = trim_color(options.bg_color or 'E1E1E1');
+    local txt_color = trim_color(options.txt_color or '000000');
+    local aright = trim(options.right or '');
     local ctxt1 = ''
     local ctxt2 = ''
 
@@ -106,7 +116,7 @@ function p.IcoTitle(options)
         :tag('td')
         :attr('width', '80%')
         :css('color', '#' .. txt_color)
-        :wikitext(trim(options[1]))
+        :wikitext(trim(options.title))
         :done()
         :tag('td')
         :attr('width', '10%')
