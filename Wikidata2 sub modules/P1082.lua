@@ -1,5 +1,5 @@
 local p = {}
-local track = require("وحدة:Wikidata/تتبع").makecategory1
+local track = require("وحدة:Wikidata2/تتبع").makecategory1
 
 local function isvalid(x)
 	if x and x ~= nil and x ~= "" then return x end

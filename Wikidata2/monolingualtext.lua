@@ -1,27 +1,33 @@
 local p = {}
 local lang_module = require("وحدة:لغات")
 
-local sandbox = "ملعب"
-local sandbox_added = ""
-if nil ~= string.find(mw.getCurrentFrame():getTitle(), sandbox, 1, true) then
-    sandbox_added = "/" .. sandbox
-end
-local config = mw.loadData('Module:Wikidata2/config' .. sandbox_added)
+-- Configuration
+local config = {
+    i18n = {
+        no = "لا",
+        the_word = "ال",
+        local_lang_code = "ar",
+        local_lang_name = "العربية",
+        full_temp_format = "([[اللغة %s|ب%s]]: %s)"
+    },
+    unsupported_langs = { "mis", "mul", "zxx" }
+}
 
-local function isvalid(x)
+-- Utility Functions
+local function is_valid(x)
     if x and x ~= nil and x ~= "" and x ~= config.i18n.no then return x end
     return nil
 end
 
-local function full_temp(lang_code, lang_name, text)
-    -- local template = mw.getCurrentFrame():expandTemplate { title = "رمز لغة واسمها", args = { lang_code, "", text } }
-    local lang_name = lang_module["اسم لغة"]({ args = { lang_code, "ال" } })
+-- Template Generators
+local function full_template(lang_code, text)
+    local resolved_lang_name = lang_module.lang_name({ args = { lang_code, config.i18n.the_word } })
 
-    local temp_text = lang_module["قالب رمز لغة"]({ args = { lang_code, text } })
+    local temp_text = lang_module.lang_code_temp({ args = { lang_code, text } })
 
-    local template = string.format("([[اللغة %s|ب%s]]: %s)‏",
-        lang_name,
-        lang_name,
+    local template = string.format(config.i18n.full_temp_format,
+        resolved_lang_name,
+        resolved_lang_name,
         temp_text
     )
 
@@ -29,65 +35,64 @@ local function full_temp(lang_code, lang_name, text)
     return template
 end
 
-local function short_temp(lang_code, text)
-    local template = lang_module["قالب رمز لغة"]({ args = { lang_code, text } })
-    -- local template = mw.getCurrentFrame():expandTemplate { title = "رمز لغة", args = { lang_code, text } }
-    return template
+local function short_template(lang_code, text)
+    return lang_module.lang_code_temp({ args = { lang_code, text } })
 end
 
-local function getTemplateType(lang_code, lang_name, text, options, same_lang)
-    local text_format = isvalid(options.textformat) or isvalid(options.formatting)
+-- Template Type Resolver
+local function resolve_template_type(lang_code, text, options, is_same_lang)
+    local text_format = is_valid(options.textformat) or is_valid(options.formatting)
 
-    if (lang_code == options.langpref and text_format == "text") or same_lang then
+    if (lang_code == options.langpref and text_format == "text") or is_same_lang then
         return text
-    elseif isvalid(options.showlang) then
-        return full_temp(lang_code, lang_name, text)
-    else
-        return short_temp(lang_code, text)
+    elseif is_valid(options.showlang) then
+        return full_template(lang_code, text)
     end
+    return short_template(lang_code, text)
 end
 
+-- Main Logic
 function p._main(datavalue, datatype, options)
-    local lang_code = datavalue.value.language
-    local text = datavalue.value.text
-    local lang_name = mw.language.fetchLanguageName(lang_code, config.i18n.lang_code)
+    local lang_code, text = datavalue.value.language, datavalue.value.text
+    local lang_name = mw.language.fetchLanguageName(lang_code, config.i18n.local_lang_code)
 
-    if lang_code == "mis" or lang_code == "mul" then -- Unsupported language
+    -- Check for unsupported languages
+    if table.concat(config.unsupported_langs, " "):find(lang_code) then
         return text
     end
 
-    local nolang = isvalid(options.nolang)
-
-    if nolang == lang_code then
+    if is_valid(options.nolang) == lang_code then
         return ""
     end
-    local same_lang = lang_name == config.i18n.lang_name or lang_code == config.i18n.lang_code
 
-    if isvalid(options.langpref) then
-        if options.langpref == "justlang" then
-            return lang_name
-        elseif options.langpref == "langcode" then
-            return lang_code
-        elseif lang_code == options.langpref then
-            return getTemplateType(lang_code, lang_name, text, options, same_lang)
+    local is_same_lang = lang_name == config.i18n.local_lang_name or lang_code == config.i18n.local_lang_code
+
+    -- Handle language preferences
+    if is_valid(options.langpref) then
+        local result = ""
+        local pref = options.langpref
+        if pref == "justlang" then
+            result = lang_name
+        elseif pref == "langcode" then
+            result = lang_code
+        elseif lang_code == pref then
+            result = resolve_template_type(lang_code, text, options, is_same_lang)
         end
-    else
-        return getTemplateType(lang_code, lang_name, text, options, same_lang)
+        return result
     end
-    return ""
+
+    return resolve_template_type(lang_code, text, options, is_same_lang)
 end
 
-function p.main(frame)
+-- Frame Interface
+function p.main(frame) -- Testing function
     local datavalue = {
         value = {
-            language = frame.args["language"],
-            text = frame.args["text"]
+            language = frame.args.language,
+            text = frame.args.text
         }
     }
-    local datatype = frame.args["datatype"]
-    local options = frame.args
-
-    return p._main(datavalue, datatype, options)
+    return p._main(datavalue, frame.args.datatype, frame.args)
 end
 
 return p

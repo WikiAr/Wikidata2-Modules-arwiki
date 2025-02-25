@@ -3,10 +3,9 @@ return {
     max_number_of_ref = 7,
     i18n = {
         local_lang = "ar", -- mw.getContentLanguage():getCode()
-        local_name = "العربية",
         local_lang_qids = {
-            P407 = 13955, -- "العربية"
-            P282 = 8196   --   = "أبجدية عربية"
+            P407 = 13955,  -- "العربية"
+            P282 = 8196    --   = "أبجدية عربية"
         },
         categories = {
             noarabiclabel = "تصنيف:صفحات ويكي بيانات بحاجة لتسمية عربية",

@@ -1,5 +1,11 @@
 local p = {}
-local track = require('وحدة:Wikidata/تتبع').makecategory1
+local track = require('وحدة:Wikidata2/تتبع').makecategory1
+
+local i18n = {
+	file_prefix = mw.site.namespaces[6].name,
+	edit_at_wd_link = "[تعديل في ويكي بيانات]",
+	default_value_label = "قيمة",
+}
 
 local function isvalid(x)
 	if x and x ~= nil and x ~= "" then return x end
@@ -8,7 +14,6 @@ end
 
 local function one_temp(statement, options)
 	local Args = {}
-
 	local opts = options
 	opts.enbarten = 'true'
 
@@ -31,6 +36,7 @@ local function one_temp(statement, options)
 			}, statement.qualifiers) or ''
 		end
 	end
+
 	if statement.qualifiers then
 		tato(0, options.Q0)
 		Args[1] = s
@@ -49,8 +55,8 @@ local function one_temp(statement, options)
 end
 
 local function create_edit_at_wd(qid)
-	local content = ("[[ملف:Wikidata-logo.svg|20بك|link=d:%s#P54]] [[d:%s#P54|[تعديل في ويكي بيانات]]]")
-		:format(qid, qid)
+	local content = ("[[%s:Wikidata-logo.svg|20px|link=d:%s#P54]] [[d:%s#P54|%s]]")
+		:format(i18n.file_prefix, qid, qid, i18n.edit_at_wd_link)
 	local edit_at_wd = mw.html.create("tr")
 		:tag("td"):attr("scope", "col")
 		:css("background-color", "#F9F9F9")
@@ -82,14 +88,13 @@ function p.temp(claims, options)
 		if isvalid(options[val]) then
 			Labs[numb] = options[val]
 		elseif isvalid(val) then
-			Labs[numb] =
-				mw.wikibase.label(val)
+			Labs[numb] = mw.wikibase.label(val)
 		end
 		if isvalid(val) then lenth = lenth + 1 end
 	end
 
 	make_lab(0, "Q0")
-	Labs[1] = options.Q1_lab or "value"
+	Labs[1] = options.Q1_lab or i18n.default_value_label
 	make_lab(2, "Q1")
 	make_lab(3, "Q2")
 	make_lab(4, "Q3")

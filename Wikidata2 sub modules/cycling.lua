@@ -14,14 +14,13 @@ local p = {}
 }}
 ]]
 
-function p.template_stages(datavalue ,datatype , options)
-
-   	local item = datavalue.value.id
+function p.template_stages(datavalue, datatype, options)
+	local item = datavalue.value.id
 	local template = "Cycling race/stageclassification2"
 
 	local cy_type = options.cy_type or options["cy_type"]
 
-	return mw.getCurrentFrame():expandTemplate{ title = template , args = {item,type=cy_type}}
+	return mw.getCurrentFrame():expandTemplate { title = template, args = { item, type = cy_type } }
 end
 
 return p

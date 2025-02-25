@@ -6,6 +6,7 @@ isvalid($1)
 
 
 
+(.*?)\s*==\s*['"]['"]\s*or\s*not\s*\1
 not\s*(.*?)\s*or\s*\1\s*==\s*['"]['"]
 
 not isvalid($1)
