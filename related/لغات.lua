@@ -41,7 +41,7 @@ local function remove_the_from_name(name)
         name2 = name2:gsub("^" .. i18n.the_word .. " ", "")
         name2 = name2:gsub(" " .. i18n.the_word, " ")
     end
-    return name
+    return name2
 end
 
 local function gsubname(name, add_the, code)
