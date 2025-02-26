@@ -329,7 +329,7 @@ function formatStatement(statement, options)
 		s.formated_quals = {}
 		if isvalid(s) then
 			if statement.qualifiers then
-				s.formated_quals = formatqualifiers(statement, s, options)
+				s.formated_quals = formatqualifiers(statement, options)
 				--if isvalid(qualu) then table.insert(qualu) end
 			end
 
@@ -346,7 +346,7 @@ function formatStatement(statement, options)
 	return { value = formatError("unknown_claim_type") }
 end
 
-function formatOneStatement(statement, ref, options)
+function formatOneStatement(statement, options, ref)
 	local value = nil
 	local stat = formatStatement(statement, options)
 	if not stat then
@@ -413,8 +413,8 @@ function formatOneStatement(statement, ref, options)
 	end
 
 	local bothdates = options.bothdates
-	if isvalid(formated_quals.tifr) and isvalid(bothdates) then
-		local dateStr = qoo(QPrefix, "", formated_quals.tifr, QSuffix)
+	if isvalid(formated_quals.start_end) and isvalid(bothdates) then
+		local dateStr = qoo(QPrefix, "", formated_quals.start_end, QSuffix)
 		if bothdates == "line" then
 			s = s .. mw.text.tag("br") .. dateStr
 		elseif bothdates == "before" then
@@ -592,6 +592,7 @@ function formatStatements(options, LuaClaims)
 					-- entity = getEntityFromId(qid)
 				else
 					mw.addWarning(qid .. i18n.not_valid_qid)
+					qid = nil
 				end
 			end
 		end
@@ -639,7 +640,7 @@ function formatStatements(options, LuaClaims)
 		else
 			for i, statement in pairs(claims) do
 				options.num = i
-				local va = formatOneStatement(statement, LuaClaims, options)
+				local va = formatOneStatement(statement, options, LuaClaims)
 				if va.v then
 					table.insert(valuetable, va.v)
 				end
@@ -693,8 +694,9 @@ function formatReferences(statement, options)
 	return final or ""
 end
 
-function formatqualifiers(statement, s, options)
+function formatqualifiers(statement, options)
 	local qualifiers = {}
+
 	local function get_qualifier(p, firstvalue, modifytime)
 		local vvv
 		if isvalid(p) then
@@ -709,19 +711,6 @@ function formatqualifiers(statement, s, options)
 		end
 	end
 
-	if isvalid(options.withdate) then
-		--if statement.qualifiers.P585 then
-		qualifiers.P585 = get_qualifier("P585", "true", options.modifyqualifiertime)
-	end
-
-	local bothdates_option = options.bothdates
-	if isvalid(bothdates_option) then
-		if statement.qualifiers.P580 or statement.qualifiers.P582 then
-			local f = get_qualifier("P580", "true", options.modifyqualifiertime)
-			local t = get_qualifier("P582", "true", options.modifyqualifiertime)
-			qualifiers.tifr = f .. "–" .. t
-		end
-	end
 
 	local function quaaal(opti, options)
 		if isvalid(opti) and statement.qualifiers[opti] then
@@ -741,17 +730,30 @@ function formatqualifiers(statement, s, options)
 			return kkk
 		end
 	end
-
-	if isvalid(options.justthisqual) and statement.qualifiers[options.justthisqual] then
-		qualifiers.justthisqual = quaaal(options.justthisqual, options)
-	end
-
 	local function oneQualifier(suffix)
 		local qual_option = isvalid(options["qual" .. suffix])
 		if qual_option and statement.qualifiers[qual_option] then
 			qualifiers["qual" .. suffix] = quaaal(qual_option, options)
 		end
 	end
+	if isvalid(options.withdate) then
+		--if statement.qualifiers.P585 then
+		qualifiers.P585 = get_qualifier("P585", "true", options.modifyqualifiertime)
+	end
+
+	local bothdates_option = options.bothdates
+	if isvalid(bothdates_option) then
+		if statement.qualifiers.P580 or statement.qualifiers.P582 then
+			local f = get_qualifier("P580", "true", options.modifyqualifiertime)
+			local t = get_qualifier("P582", "true", options.modifyqualifiertime)
+			qualifiers.start_end = f .. "–" .. t
+		end
+	end
+
+	if isvalid(options.justthisqual) and statement.qualifiers[options.justthisqual] then
+		qualifiers.justthisqual = quaaal(options.justthisqual, options)
+	end
+
 
 	oneQualifier("1") -- options.qual1
 	oneQualifier("1a") -- options.qual1a

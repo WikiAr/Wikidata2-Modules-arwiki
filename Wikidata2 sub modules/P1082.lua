@@ -42,7 +42,7 @@ function p.P1082(claims, options)
 
 	for _, statement in pairs(claims) do
 		local tab = { ref = "", year = "", value = "" }
-		local va = formatOneStatement(statement, "", options)
+		local va = formatOneStatement(statement, options)
 
 		if statement and statement.qualifiers and statement.qualifiers.P585 then
 			if statement.qualifiers.P585[1].snaktype == "value" then

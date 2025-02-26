@@ -24,7 +24,7 @@ function p.foot(claims, options)
 	if claims then
 		for i, statement in pairs(claims) do
 			options.num = i
-			local va = formatOneStatement(statement, nil, options)
+			local va = formatOneStatement(statement, options)
 			if va.v then
 				table.insert(formattedStatements, va.v)
 			end
