@@ -363,24 +363,24 @@ end
 
 function p.getdate(datavalue, datatype, options)
     local propertyID = options.property
-    local entity = mw.wikibase.getEntityObject(options.entityId)
-
-    if datavalue.type == 'time'
-    then
+    -- local entity = mw.wikibase.getEntityObject(options.entityId)
+    -- local id = entity.id
+    local id = options.entityId
+    if datavalue.type == 'time' then
         local precision = tonumber(datavalue.value.precision)
         local time_v = datavalue.value.time
         if precision == 9 or precision == 10 then
             time_v = string.gsub(time_v, '-00T', '-01T')
         end
 
-        local tt = propert(precision, time_v, propertyID, entity.id)
+        local tt = propert(precision, time_v, propertyID, id)
         return tt
     end
 end
 
 function p.test(frame)
     local propertyID = frame.args.property
-    local entity = mw.wikibase.getEntityObject(frame.args.entityId)
+    -- local entity = mw.wikibase.getEntityObject(frame.args.entityId)
     if isvalid(propertyID)
     then
         local val = ""

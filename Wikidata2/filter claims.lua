@@ -29,10 +29,6 @@ local function parse_number(value)
 	return (type(value) == "number") and value or tonumber(value)
 end
 
-local function getEntityFromId(id)
-	return isvalid(id) and mw.wikibase.getEntityObject(id) or mw.wikibase.getEntityObject()
-end
-
 function p.get_snak_id(snak)
 	if snak and snak.type and
 		snak.type == "statement" and snak.mainsnak and snak.mainsnak.snaktype and
@@ -173,8 +169,7 @@ local function filter_get_only_or_dont(claims, option, f_property, mode)
 		local id = p.get_snak_id(claim)
 		if id then
 			local valid = is_dont_mode
-			local entity = getEntityFromId(id)
-			local t2 = entity:getBestStatements(f_property)
+			local t2 = mw.wikibase.getBestStatements(id, f_property)
 
 			if t2 and #t2 > 0 then
 				for _, claim2 in pairs(t2) do
