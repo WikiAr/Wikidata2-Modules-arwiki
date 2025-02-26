@@ -92,7 +92,7 @@ local function filter_by_qualifier(claims, option, values, mode)
 					if
 						quall.snaktype == "value" and quall.datavalue and quall.datavalue.value and
 						quall.datavalue.value["id"] and
-						table_contains(avoidqualifiervalue_values, quall.datavalue.value["id"])
+						table_contains(values, quall.datavalue.value["id"])
 					then
 						active = false
 						break
@@ -162,7 +162,7 @@ local function filter_langs(claims)
 	return claims
 end
 
-local function getonly(claims, option, f_property)
+local function filter_get_only_or_dont(claims, option, f_property, mode)
 	f_property = f_property or "P31"
 	local claims2 = {}
 	local values = mw.text.split(option, ",")
@@ -171,6 +171,9 @@ local function getonly(claims, option, f_property)
 		local id = p.get_snak_id(claim)
 		if id then
 			local valid = false
+			if mode == "dont" then
+				valid = true
+			end
 			local entity = getEntityFromId(id)
 			local t2 = entity:getBestStatements(f_property)
 			if t2 and #t2 > 0 then
@@ -178,42 +181,11 @@ local function getonly(claims, option, f_property)
 					local snak2 = p.get_snak_id(claim2)
 					-- if table_contains(values, state.item) then
 					if snak2 and table_contains(values, snak2) then
-						valid = true
-						break
-					end
-				end
-			end
-
-			if valid then
-				table.insert(claims2, claim)
-			end
-		end
-	end
-
-	return claims2
-end
-
-local function dontget(claims, option, f_property)
-	--[[
-	options.dontget
-	options.dontgetproperty
-	]]
-	f_property = f_property or "P31"
-	local claims2 = {}
-	local values = mw.text.split(option, ",")
-
-	for _, claim in pairs(claims) do
-		local id = p.get_snak_id(claim)
-		if id then
-			local valid = true
-			local entity = getEntityFromId(id)
-			local t2 = entity:getBestStatements(f_property)
-			if t2 and #t2 > 0 then
-				for _, claim2 in pairs(t2) do
-					local snak2 = p.get_snak_id(claim2)
-					-- if table_contains(values, state.item) then
-					if snak2 and table_contains(values, snak2) then
-						valid = false
+						if mode == "dont" then
+							valid = false
+						else
+							valid = true
+						end
 						break
 					end
 				end
@@ -233,12 +205,12 @@ function p.filter_claims(claims, options)
 
 	-- options.getonly
 	if isvalid(options.getonly) then
-		claims = getonly(claims, options.getonly, options.getonlyproperty)
+		claims = filter_get_only_or_dont(claims, options.getonly, options.getonlyproperty, "get")
 	end
 
 	-- options.dontget
 	if isvalid(options.dontget) then
-		claims = dontget(claims, options.dontget, options.dontgetproperty)
+		claims = filter_get_only_or_dont(claims, options.dontget, options.dontgetproperty, "dont")
 	end
 
 	local offset = options.offset
