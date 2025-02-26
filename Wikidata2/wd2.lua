@@ -596,7 +596,7 @@ function formatStatements(options, LuaClaims)
 				end
 			end
 		end
-		if entity or qid then
+		if isvalid(entity) or isvalid(qid) then
 			claims = get_claims(entity, qid, options.property, options)
 			if #claims == 0 and isvalid(options.otherproperty) then
 				options.property = options.otherproperty
