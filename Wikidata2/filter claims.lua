@@ -69,15 +69,16 @@ local function filter_by_qualifier(claims, option, values, mode)
 		return claims
 	end
 
-	local av = option:upper()
+	local qualifier_id = option:upper()
 	values = type(values) == "string" and mw.text.split(values, ",") or values
 	local claims2 = {}
 
 	for _, statement in pairs(claims) do
+		local qualifiers = statement.qualifiers and statement.qualifiers[qualifier_id]
 		if mode == "prefer" then
-			if statement.qualifiers and statement.qualifiers[av] then
+			if qualifiers then
 				if isvalid(values) then
-					for _, quall in pairs(statement.qualifiers[av]) do
+					for _, quall in pairs(qualifiers) do
 						if quall.snaktype == "value" and table_contains(values, quall.datavalue.value["id"]) then
 							table.insert(claims2, statement)
 							break
@@ -88,11 +89,11 @@ local function filter_by_qualifier(claims, option, values, mode)
 				end
 			end
 		elseif mode == "avoid" then
-			if not statement.qualifiers or not statement.qualifiers[av] then
+			if not qualifiers then
 				table.insert(claims2, statement)
 			elseif isvalid(values) then
 				local active = true
-				for _, quall in pairs(statement.qualifiers[av]) do
+				for _, quall in pairs(qualifiers) do
 					if
 						quall.snaktype == "value" and quall.datavalue and quall.datavalue.value and
 						quall.datavalue.value["id"] and
