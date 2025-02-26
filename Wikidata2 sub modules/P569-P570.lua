@@ -285,7 +285,7 @@ local function getP570(P570precision, Timev, P569precision, P569time)
     return dii
 end
 
-local function getP569(P569precision, Timev, P570precision)
+local function getP569(P569precision, Timev, has_death_date)
     local P569addon = ''
     local time_v = ''
     if string.sub(Timev, 1, 1) == '-' then
@@ -299,18 +299,17 @@ local function getP569(P569precision, Timev, P570precision)
     local monthname = mw.getContentLanguage():formatDate('F', time_v)
     local day = getdatepart(time_v, 'd')
 
-    P570precision = tonumber(P570precision)
     P569precision = tonumber(P569precision)
     --
     local current_year = tonumber(os.date("%Y"))
     local current_month = tonumber(os.date("%m"))
     --
     local val = ''
-    if isvalid(P570precision) then
+    mw.log("has_death_date", has_death_date)
+    if isvalid(has_death_date) then
         if P569precision == 11 then
             val = linkdate('P569', year .. P569addon, monthname, day)
-        elseif P569precision == 10
-        then
+        elseif P569precision == 10 then
             val = linkdate('P569', year .. P569addon, monthname)
             --
         elseif P569precision == 9 then
@@ -343,7 +342,7 @@ end
 local function propert(precision, time_v, propertyID, entity)
     local P569precision = getprop('P569', 'precision', entity)
     local P569time = getprop('P569', 'q', entity)
-    local P570precision = formatStatements({
+    local has_death_date = formatStatements({
         property = 'P570',
         entityId = entity,
         modifytime = 'P570',
@@ -355,7 +354,7 @@ local function propert(precision, time_v, propertyID, entity)
     local val = ''
 
     if propertyID == 'P569' then
-        val = getP569(precision, time_v, P570precision)
+        val = getP569(precision, time_v, has_death_date)
     elseif propertyID == 'P570' then
         val = getP570(precision, time_v, P569precision, P569time)
     end
@@ -364,26 +363,22 @@ end
 
 function p.getdate(datavalue, datatype, options)
     local propertyID = options.property
-    local entity = mw.wikibase.getEntityObject(options.entityId)
-
-    if datavalue.type == 'time'
-    then
+    local id = options.entityId
+    if datavalue.type == 'time' then
         local precision = tonumber(datavalue.value.precision)
         local time_v = datavalue.value.time
         if precision == 9 or precision == 10 then
             time_v = string.gsub(time_v, '-00T', '-01T')
         end
 
-        local tt = propert(precision, time_v, propertyID, entity.id)
+        local tt = propert(precision, time_v, propertyID, id)
         return tt
     end
 end
 
 function p.test(frame)
     local propertyID = frame.args.property
-    local entity = mw.wikibase.getEntityObject(frame.args.entityId)
-    if isvalid(propertyID)
-    then
+    if isvalid(propertyID) then
         local val = ""
         if propertyID == 'P569'
         then

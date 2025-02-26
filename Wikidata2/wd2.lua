@@ -235,16 +235,6 @@ local function filter_langs(claims)
 	return claims
 end
 
---[[
-
-  functions
-
-]]
-
-local function getEntityFromId(id)
-	return isvalid(id) and mw.wikibase.getEntity(id) or mw.wikibase.getEntity()
-end
-
 local function formatError(key)
 	return i18n.errors[key]
 end
@@ -329,7 +319,7 @@ function formatStatement(statement, options)
 		s.formated_quals = {}
 		if isvalid(s) then
 			if statement.qualifiers then
-				s.formated_quals = formatqualifiers(statement, s, options)
+				s.formated_quals = formatqualifiers(statement, options)
 				--if isvalid(qualu) then table.insert(qualu) end
 			end
 
@@ -346,7 +336,7 @@ function formatStatement(statement, options)
 	return { value = formatError("unknown_claim_type") }
 end
 
-function formatOneStatement(statement, ref, options)
+function formatOneStatement(statement, options, ref)
 	local value = nil
 	local stat = formatStatement(statement, options)
 	if not stat then
@@ -413,8 +403,8 @@ function formatOneStatement(statement, ref, options)
 	end
 
 	local bothdates = options.bothdates
-	if isvalid(formated_quals.tifr) and isvalid(bothdates) then
-		local dateStr = qoo(QPrefix, "", formated_quals.tifr, QSuffix)
+	if isvalid(formated_quals.start_end) and isvalid(bothdates) then
+		local dateStr = qoo(QPrefix, "", formated_quals.start_end, QSuffix)
 		if bothdates == "line" then
 			s = s .. mw.text.tag("br") .. dateStr
 		elseif bothdates == "before" then
@@ -441,30 +431,36 @@ function formatOneStatement(statement, ref, options)
 	return { v = value, raw = stat }
 end
 
-function get_claims(entity, property, options)
+function get_claims(entity, qid, property, options)
+	property = property:upper()
+	--property = mw.wikibase.resolvePropertyId( property )
 	local claims = {}
 	--Format statement and concat them cleanly
 	if options.rank == "best" or isntvalid(options.rank) then
 		--claims = entity:getAllStatements( property )
-		claims = entity:getBestStatements(property)
-	elseif options.rank == "valid" then
-		for i, statement in pairs(entity.claims[property]) do
-			if statement.rank == "preferred" or statement.rank == "normal" then
-				table.insert(claims, statement)
-			end
+		if entity then
+			claims = entity:getBestStatements(property)
+		else
+			claims = mw.wikibase.getBestStatements(qid, property)
 		end
-	elseif options.rank == "all" then
-		for i, statement in pairs(entity.claims[property]) do
+		return claims
+	end
+	local allclaims = {}
+
+	if entity then
+		allclaims = entity:getAllStatements(property)
+	else
+		allclaims = mw.wikibase.getAllStatements(qid, property)
+	end
+	if not allclaims or #allclaims == 0 then
+		return {}
+	end
+	for i, statement in pairs(allclaims) do
+		local valid_st = (statement.rank == "preferred" or statement.rank == "normal") and options.rank == "valid"
+		if valid_st or (options.rank == "all") or (statement.rank == options.rank) then
 			table.insert(claims, statement)
 		end
-	else
-		for i, statement in pairs(entity.claims[property]) do
-			if statement.rank == options.rank then
-				table.insert(claims, statement)
-			end
-		end
 	end
-
 	return claims
 end
 
@@ -549,9 +545,6 @@ function add_suffix_pprefix(options, prop)
 end
 
 function formatStatements(options, LuaClaims)
-	local valuetable = {} -- formattedStatements
-	local claims = {}
-
 	if isntvalid(options.property) and isvalid(options.pid) then
 		options.property = options.pid
 	end
@@ -565,49 +558,45 @@ function formatStatements(options, LuaClaims)
 		options['"' .. option1 .. '"'] = options.option1value
 		--mw.log( "option1: " .. option1 .. "value: " .. options.option1value  )
 	end
+	local claims = {}
+	local entity = nil
+	local qid = nil
+
 	if type(LuaClaims) == "table" then
 		claims = LuaClaims[options.property] or {}
+		if #claims == 0 and isvalid(options.otherproperty) then
+			claims = LuaClaims[options.otherproperty:upper()] or {}
+		end
 		--mw.log("module:wikidata2: claims = LuaClaims[options.property]")
 	else
 		--Get entity
-		local entity = nil
 		if options.entity and type(options.entity) == "table" then
 			entity = options.entity
 		else
-			local id = get_entityId(options)
-			if isvalid(id) then
-				--mw.ustring.match(id, "Q%d+") or mw.ustring.match(id, "P%d+")
-				if mw.wikibase.isValidEntityId(id) and mw.wikibase.entityExists(id) then
-					options.entityId = id
-					options.qid = id
+			qid = get_entityId(options)
+			if isvalid(qid) then
+				--mw.ustring.match(qid, "Q%d+") or mw.ustring.match(qid, "P%d+")
+				if mw.wikibase.isValidEntityId(qid) and mw.wikibase.entityExists(qid) then
+					options.entityId = qid
+					options.qid = qid
 				else
-					mw.addWarning(id .. i18n.not_valid_qid)
-					return ""
+					mw.addWarning(qid .. i18n.not_valid_qid)
+					qid = nil
 				end
 			end
-			entity = getEntityFromId(id)
 		end
-		if not entity then
-			return ""
-		end
-		--local property = mw.wikibase.resolvePropertyId( options.property:upper() )
-		local property = options.property:upper()
-
-		if not entity.claims or not entity.claims[property] then
-			if isvalid(options.otherproperty) then
+		if isvalid(entity) or isvalid(qid) then
+			claims = get_claims(entity, qid, options.property, options)
+			if #claims == 0 and isvalid(options.otherproperty) then
 				options.property = options.otherproperty
-				property = options.otherproperty:upper()
+				claims = get_claims(entity, qid, options.property, options)
 			end
 		end
-		if property == nil then
-			return ""
-		end
-		if not entity.claims or not entity.claims[property] then
-			return "" --TODO error?
-		end
-		claims = get_claims(entity, property, options)
 	end
 
+	if not claims or #claims == 0 then
+		return ""
+	end
 	if isntvalid(options.langpref) then
 		claims = filter_langs(claims)
 	end
@@ -623,6 +612,7 @@ function formatStatements(options, LuaClaims)
 	if isvalid(options.numberofclaims) then
 		return #claims
 	end
+	local valuetable = {} -- formattedStatements
 	if claims then
 		if isvalid(options["property-module"]) and isvalid(options["property-function"]) then
 			local formatter = require("Module:" .. options["property-module"])
@@ -639,7 +629,7 @@ function formatStatements(options, LuaClaims)
 		else
 			for i, statement in pairs(claims) do
 				options.num = i
-				local va = formatOneStatement(statement, LuaClaims, options)
+				local va = formatOneStatement(statement, options, LuaClaims)
 				if va.v then
 					table.insert(valuetable, va.v)
 				end
@@ -693,9 +683,10 @@ function formatReferences(statement, options)
 	return final or ""
 end
 
-function formatqualifiers(statement, s, options)
+function formatqualifiers(statement, options)
 	local qualifiers = {}
-	local function qua(p, firstvalue, modifytime)
+
+	local function get_qualifier(p, firstvalue, modifytime)
 		local vvv
 		if isvalid(p) then
 			vvv = formatStatements({
@@ -709,19 +700,6 @@ function formatqualifiers(statement, s, options)
 		end
 	end
 
-	if isvalid(options.withdate) then
-		--if statement.qualifiers.P585 then
-		qualifiers.P585 = qua("P585", "true", options.modifyqualifiertime)
-	end
-
-	local bothdates_option = options.bothdates
-	if isvalid(bothdates_option) then
-		if statement.qualifiers.P580 or statement.qualifiers.P582 then
-			local f = qua("P580", "true", options.modifyqualifiertime)
-			local t = qua("P582", "true", options.modifyqualifiertime)
-			qualifiers.tifr = f .. "–" .. t
-		end
-	end
 
 	local function quaaal(opti, options)
 		if isvalid(opti) and statement.qualifiers[opti] then
@@ -741,28 +719,38 @@ function formatqualifiers(statement, s, options)
 			return kkk
 		end
 	end
+	local function oneQualifier(suffix)
+		local qual_option = isvalid(options["qual" .. suffix])
+		if qual_option and statement.qualifiers[qual_option] then
+			qualifiers["qual" .. suffix] = quaaal(qual_option, options)
+		end
+	end
+	if isvalid(options.withdate) then
+		--if statement.qualifiers.P585 then
+		qualifiers.P585 = get_qualifier("P585", "true", options.modifyqualifiertime)
+	end
+
+	local bothdates_option = options.bothdates
+	if isvalid(bothdates_option) then
+		if statement.qualifiers.P580 or statement.qualifiers.P582 then
+			local f = get_qualifier("P580", "true", options.modifyqualifiertime)
+			local t = get_qualifier("P582", "true", options.modifyqualifiertime)
+			qualifiers.start_end = f .. "–" .. t
+		end
+	end
 
 	if isvalid(options.justthisqual) and statement.qualifiers[options.justthisqual] then
 		qualifiers.justthisqual = quaaal(options.justthisqual, options)
 	end
-	if isvalid(options.qual1) and statement.qualifiers[options.qual1] then
-		qualifiers.qual1 = quaaal(options.qual1, options)
-	end
-	if isvalid(options.qual1a) and statement.qualifiers[options.qual1a] then
-		qualifiers.qual1a = quaaal(options.qual1a, options)
-	end
-	if isvalid(options.qual2) and statement.qualifiers[options.qual2] then
-		qualifiers.qual2 = quaaal(options.qual2, options)
-	end
-	if isvalid(options.qual3) and statement.qualifiers[options.qual3] then
-		qualifiers.qual3 = quaaal(options.qual3, options)
-	end
-	if isvalid(options.qual4) and statement.qualifiers[options.qual4] then
-		qualifiers.qual4 = quaaal(options.qual4, options)
-	end
-	if isvalid(options.qual5) and statement.qualifiers[options.qual5] then
-		qualifiers.qual5 = quaaal(options.qual5, options)
-	end
+
+
+	oneQualifier("1") -- options.qual1
+	oneQualifier("1a") -- options.qual1a
+	oneQualifier("2") -- options.qual2
+	oneQualifier("3") -- options.qual3
+	oneQualifier("4") -- options.qual4
+	oneQualifier("5") -- options.qual5
+
 	return qualifiers
 end
 
@@ -1223,18 +1211,7 @@ end
 
 function sitelink(id, wikisite)
 	local site = wikisite or mw.wikibase.getGlobalSiteId() -- "arwiki"
-	local link = ""
-	--local link = mw.wikibase.getSitelink( id, site ) or ""
-
-	local entity = mw.wikibase.getEntity(id)
-	if
-		entity and entity.sitelinks and entity.sitelinks["" .. site .. ""] and entity.sitelinks["" .. site .. ""].site and
-		entity.sitelinks["" .. site .. ""].title
-	then
-		if entity.sitelinks["" .. site .. ""].site == site then
-			link = entity.sitelinks["" .. site .. ""].title
-		end
-	end
+	local link = mw.wikibase.getSitelink(id, site) or ""
 	return link
 end
 
@@ -1257,13 +1234,6 @@ function wd2.formatAndCat(args)
 	return wd2.formatStatementsFromLua(args)
 end
 
-function wd2.getEntity(id)
-	if type(id) == "table" then
-		return id
-	end
-	return getEntityFromId(id)
-end
-
 function wd2.translate(str, rep1, rep2)
 	str = i18n[str] or str
 	if rep1 and (type(rep1) == "string") then
@@ -1284,17 +1254,17 @@ function wd2.getId(snak)
 end
 
 function wd2.addLinkBack(str, id, property)
-	if not id then
-		id = wd2.getEntity()
+	if type(id) == "table" then
+		id = id.id
 	end
-	if not id then
+	if not isvalid(id) then
+		id = mw.wikibase.getEntityIdForCurrentPage()
+	end
+	if not isvalid(id) then
 		return str
 	end
 	if type(property) == "table" then
 		property = property[1]
-	end
-	if type(id) == "table" then
-		id = id.id
 	end
 	local class = ""
 	if property then

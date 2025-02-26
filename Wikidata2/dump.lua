@@ -17,17 +17,10 @@ local function isntvalid(x)
 	return false
 end
 
-local function getEntityFromId(id)
-	return isvalid(id) and mw.wikibase.getEntity(id) or mw.wikibase.getEntity()
-end
-
 function p.Subclass(options)
 	local parent = options.parent or ""
-	local id = options.id or ""
-	local Entity = getEntityFromId(id)
-	if Entity then
-		id = Entity.id
-	end
+	local id = isvalid(options.id) or mw.wikibase.getEntityIdForCurrentPage()
+
 	local property = options.property or "P31"
 	if isntvalid(parent) or isntvalid(id) or isntvalid(property) then
 		return false

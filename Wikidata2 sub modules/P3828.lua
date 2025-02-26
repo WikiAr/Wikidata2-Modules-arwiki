@@ -27,18 +27,6 @@ local function get_snak_id(snak)
 	end
 end
 
-
-local function getEntityFromId(id)
-	if isvalid(id) then
-		--	if not(mw.wikibase.isValidEntityId(id)) or not(mw.wikibase.entityExists(id)) then
-		--	return false
-		--end
-		return mw.wikibase.getEntityObject(id)
-	else
-		return mw.wikibase.getEntityObject()
-	end
-end
-
 local function get_qualifiers_id(snak)
 	if
 		snak and snak[1] and snak[1].snaktype == "value" and snak[1].datavalue and
@@ -100,13 +88,13 @@ local function find_team_Kit(claims, id, title, options)
 	}
 
 	local kitId = find_Kit_type(claims, id)
+	local property_claims = mw.wikibase.getBestStatements(kitId, "P527") or {}
 
-	local entity = getEntityFromId(kitId)
-	if not entity or not entity.claims or not entity.claims["P527"] then
+	if not property_claims or #property_claims == 0 then
 		return ""
 	end
 
-	for _, statement in pairs(entity.claims["P527"]) do
+	for _, statement in pairs(property_claims) do
 		local ssId = get_snak_id(statement)
 		if p.typeOfKit[ssId] then
 			ssId = p.typeOfKit[ssId]

@@ -3,11 +3,11 @@ local data = require("Module:لغات/بيانات")
 
 local i18n = {
     scripts = {
-        ['-latn'] = 'لاتينية',
-        ['-cyrl'] = 'سيريلية',
-        ['-arab'] = 'عربية',
+        ["-latn"] = "لاتينية",
+        ["-cyrl"] = "سيريلية",
+        ["-arab"] = "عربية"
     },
-    the_word = "ال",
+    al_word = "ال",
     local_lang = "ar",
     local_lang_2 = "ara",
     lang_usage_cat = "تصنيف:مقالات تحوي نصا ب%s",
@@ -16,91 +16,83 @@ local i18n = {
         link = "وصلة",
         template_result = "نتيجة القالب",
         redirects = "التحويلات",
-        template_ISO_639_name = "اسم آيزو 639 %s",
+        template_ISO_639_name = "اسم آيزو 639",
         lang_name_prefix = "لغة",
-        lang_name_prefix_with_the = "اللغة",
+        lang_name_prefix_with_the = "اللغة"
     },
     ns_10_name = mw.site.namespaces[10].name
 }
 
-local function isvalid(x)
+local function isValid(x)
     if x and x ~= "" then return x end
     return nil
 end
 
-local function add_the_to_name(name)
-    if name:match("^" .. i18n.the_word) then
+local function addDefiniteArticle(name)
+    if not name or name:match("^" .. i18n.al_word) then
         return name
     end
-    return i18n.the_word .. string.gsub(name, " ", " " .. i18n.the_word)
+    return i18n.al_word .. name:gsub(" ", " " .. i18n.al_word)
 end
 
-local function remove_the_from_name(name)
+local function remove_al_from_name(name)
     local name2 = name
-    if name:match("^" .. i18n.the_word) then
-        name2 = name2:gsub("^" .. i18n.the_word .. " ", "")
-        name2 = name2:gsub(" " .. i18n.the_word, " ")
+    if name:match("^" .. i18n.al_word) then
+        name2 = name2:gsub("^" .. i18n.al_word .. " ", "")
+        name2 = name2:gsub(" " .. i18n.al_word, " ")
     end
     return name2
 end
 
-local function gsubname(name, add_the, code)
-    if isvalid(code) then
-        local name_with_all = data.lang_name_with_al[code] or data.lang_name_with_al[code:lower()]
+local function formatLanguageName(name, add_the, lang_code)
+    if isValid(lang_code) then
+        local name_with_all = data.lang_name_with_al[lang_code] or data.lang_name_with_al[lang_code:lower()]
         if name_with_all then
             return name_with_all
         end
     end
-    if isvalid(add_the) then
-        return add_the_to_name(name)
+    if isValid(add_the) then
+        return addDefiniteArticle(name)
     end
     return name
 end
 
-local function LatnCyrl(code, al, number, returnnil)
-    local ar_name = ""
-    code = code:lower()
-    number = (number or 0) + 1
-    local e = string.sub(code, -5) -- 5 from the end until the end
-    local s = string.gsub(code, e, "")
-    local name = p.getname(s, "", number)
-    local co = "" and isvalid(returnnil) or code
-
-    if isvalid(name) and i18n.scripts[e] then
-        ar_name = name .. " " .. i18n.scripts[e]
-    end
-
-    if ar_name == "" then
-        return co
-    end
-    return gsubname(ar_name, al, code)
+local function get_name_from_code(lang_code)
+    if not isValid(lang_code) then return nil end
+    local clean_code = lang_code:gsub("%s", ""):lower()
+    return data.lang_name[clean_code] or data.lang_name_with_al[clean_code]
 end
 
-function p.get_name_from_code(code)
-    local s = string.gsub(code, " ", "")
-    return data.lang_name[s] or data.lang_name[s:lower()] or data.lang_name_with_al[s:lower()]
-end
+local function handleScriptVariant(lang_code, add_the, recursion_count)
+    recursion_count = (recursion_count or 0) + 1
+    if recursion_count > 3 then return nil end
 
-function p.getname(code, al, number, returnnil)
-    number = (number or 0) + 1
-    if number and number > 3 then
-        return nil
-    end
-    if not isvalid(code) then
-        return ""
-    end
-    if string.find(code, "[)|(]") then
+    local code = lang_code:lower()
+    local script_suffix = code:match(".-(%-%a+)$")
+    if not script_suffix or not i18n.scripts[script_suffix] then
         return code
     end
-    code = string.gsub(code, " ", "")
-    local fi
-    local name = p.get_name_from_code(code)
-    if isvalid(name) then
-        fi = gsubname(name, al, code)
-    else
-        fi = LatnCyrl(code, al, number, returnnil)
+
+    local base_code = code:gsub(script_suffix, "")
+    local base_name = get_name_from_code(base_code)
+    if not base_name then return code end
+
+    local full_name = base_name .. " " .. i18n.scripts[script_suffix]
+    return formatLanguageName(full_name, add_the, code)
+end
+
+local function getLanguageName(lang_code, add_the, recursion_count, return_nil_if_invalid)
+    if not isValid(lang_code) then return "" end
+    if lang_code:find("[|(]") then return lang_code end
+
+    local clean_code = lang_code:gsub("%s", "")
+    local name = get_name_from_code(clean_code)
+    if name then
+        return formatLanguageName(name, add_the, clean_code)
     end
-    return fi
+
+    return handleScriptVariant(clean_code, add_the, recursion_count) or
+        (return_nil_if_invalid and nil or clean_code)
 end
 
 local function has_name(name, names)
@@ -113,28 +105,28 @@ local function has_name(name, names)
     return false
 end
 
-local function matches_any(target, names)
+local function matchesName(target, names)
     for _, name in ipairs(names) do
-        if target == name or target == add_the_to_name(name) then
+        if target == name or target == addDefiniteArticle(name) then
             return true
         end
     end
     return false
 end
 
-local function get_code(l_code, v, local_name, local_name_no_al)
-    if matches_any(local_name, { v.name }) then
+local function get_code(l_code, v, local_name, name_without_al)
+    if matchesName(local_name, { v.name }) then
         return l_code
     end
 
-    if matches_any(local_name, { p.getname(l_code, "") }) then
+    if matchesName(local_name, { getLanguageName(l_code, "") }) then
         return l_code
     end
 
     if v.names then
         for _, alias in ipairs(v.names) do
-            -- if local_name_no_al == alias or local_name == alias or local_name == add_the_to_name(alias, true) then
-            if local_name_no_al == alias or matches_any(local_name, { alias }) then
+            -- if name_without_al == alias or local_name == alias or local_name == addDefiniteArticle(alias, true) then
+            if name_without_al == alias or matchesName(local_name, { alias }) then
                 return l_code
             end
         end
@@ -153,11 +145,11 @@ local function get_code(l_code, v, local_name, local_name_no_al)
                 -- mw.log(("local_name:(%s) name_in_with_script:(%s)"):format(local_name, name_in_with_script))
                 local script_code = l_code .. script
 
-                if local_name_no_al == name_in_with_script then
+                if name_without_al == name_in_with_script then
                     return script_code
                 end
 
-                if matches_any(local_name, { name_in_with_script }) then
+                if matchesName(local_name, { name_in_with_script }) then
                     return script_code
                 end
             end
@@ -166,17 +158,19 @@ local function get_code(l_code, v, local_name, local_name_no_al)
 end
 
 local function get_code_from_name(local_name)
-    -- Check direct match in lang_codes
+    if not isValid(local_name) then return nil end
+
     if data.lang_codes[local_name] then
         return data.lang_codes[local_name]
     end
-    local local_name_no_al = remove_the_from_name(local_name)
-    if data.lang_codes[local_name_no_al] then
-        return data.lang_codes[local_name_no_al]
+
+    local name_without_al = remove_al_from_name(local_name)
+    if data.lang_codes[name_without_al] then
+        return data.lang_codes[name_without_al]
     end
-    -- Iterate over lang_table
-    for l_code, v in pairs(data.lang_table) do
-        local code_b = get_code(l_code, v, local_name, local_name_no_al)
+
+    for l_code, lang_data in pairs(data.lang_table) do
+        local code_b = get_code(l_code, lang_data, local_name, name_without_al)
         if code_b then
             return code_b
         end
@@ -184,103 +178,79 @@ local function get_code_from_name(local_name)
     return nil
 end
 
-local function make_cat(lange)
-    if lange == i18n.local_lang or lange == i18n.local_lang_2 then
+local function generateCategory(lang_code)
+    if lang_code == i18n.local_lang or lang_code == i18n.local_lang_2 then
         return ""
     end
-    local c = p.getname(lange, "t")
-
-    return ("[[" .. i18n.lang_usage_cat .. "]]"):format(c or lange)
+    local lang_name = getLanguageName(lang_code, true) or lang_code
+    return ("[[" .. i18n.lang_usage_cat .. "]]"):format(lang_name)
 end
 
-function p.lang_name(frame)
-    local na = frame.args[1]
-    if not isvalid(na) then
-        return ""
-    end
-    local code = p.getname(frame.args[1], frame.args[2], 0, frame.args["nil"])
-    return mw.getCurrentFrame():preprocess(code)
+function p.getLanguageName(frame)
+    local code = frame.args[1]
+    if not isValid(code) then return "" end
+    local add_the = frame.args[2]
+    local result = getLanguageName(code, add_the, 0, frame.args["nil"])
+    return mw.getCurrentFrame():preprocess(result)
 end
 
-function p.lang_code_temp(frame)
-    local lange = frame.args[1]
+function p.tagLanguageCode(frame)
+    local lang_code = frame.args[1]
     local text = frame.args[2]
-    if not isvalid(lange) then
-        return ""
-    end
-    lange = string.gsub(lange, " ", "")
-    lange = lange:lower()
-    local textout = mw.text.tag("span", { lang = lange }, text)
-    local cate = make_cat(lange)
+    if not isValid(lang_code) then return "" end
 
-    return textout .. cate
+    local clean_code = lang_code:gsub("%s", ""):lower()
+    local tagged_text = mw.text.tag("span", { lang = clean_code }, text)
+    return tagged_text .. generateCategory(clean_code)
 end
 
-function p.lang_code(frame)
-    local na = frame.args[1]
-    if isvalid(na) then
-        return get_code_from_name(na) or get_code_from_name(add_the_to_name(na))
-    end
-    return ""
+function p.getLanguageCode(frame)
+    local name = frame.args[1]
+    if not isValid(name) then return "" end
+    return get_code_from_name(name) or get_code_from_name(addDefiniteArticle(name)) or ""
 end
 
-function p.list()
-    local list = mw.html.create("table"):addClass("wikitable sortable collapsible mw-collapsed")
-
-    -- إنشاء صف العناوين
-    local header = list:tag("tr")
+function p.generateLanguageList()
     local headers = { "ns_10_name", "template_result", "link", "name", "redirects" }
+    local table_builder = mw.html.create("table"):addClass("wikitable sortable collapsible mw-collapsed")
+    local frame = mw.getCurrentFrame()
+
+    -- إنشاء رأس الجدول
+    local header_row = table_builder:tag("tr")
     for _, key in ipairs(headers) do
-        header:tag("th"):wikitext(i18n.list[key])
+        header_row:tag("th"):wikitext(i18n.list[key])
     end
 
-    -- إنشاء الصفوف
-    for code, tab in pairs(data.lang_table) do
-        local lang_name = tab.name
-        local template_result = string.format("{{" .. i18n.list.template_ISO_639_name .. "}}", code)
-        local template_link = string.format("[[%s:" .. i18n.list.template_ISO_639_name .. "]]", i18n.ns_10_name, code)
+    -- ملء الجدول بالبيانات
+    for code, lang_data in pairs(data.lang_table) do
+        local row = table_builder:tag("tr")
+        local template_link = string.format("[[%s:%s %s]]", i18n.ns_10_name,
+            i18n.list.template_ISO_639_name, code)
+        local template_result = frame:preprocess(string.format("{{%s %s}}",
+            i18n.list.template_ISO_639_name, code))
+        local simple_link = string.format("[[%s %s]]", i18n.list.lang_name_prefix, lang_data.name)
+        local full_link = string.format("[[%s %s]]", i18n.list.lang_name_prefix_with_the,
+            formatLanguageName(lang_data.name, true, code))
 
-        local lang_link = ("[[%s %s]]"):format(i18n.list.lang_name_prefix, lang_name)
-        local full_lang_name = ("[[%s %s]]"):format(i18n.list.lang_name_prefix_with_the, gsubname(lang_name, "r", code))
-
-        local row = list:tag("tr")
-        row:tag("td"):tag("span"):wikitext(template_link)
-        row:tag("td"):tag("span"):wikitext(mw.getCurrentFrame():preprocess(template_result))
-        row:tag("td"):tag("span"):wikitext(lang_link)
-        row:tag("td"):tag("span"):wikitext(full_lang_name)
-
-        local redirects_cell = row:tag("td")
-        redirects_cell:attr("dir", "ltr")
-
-        local codes = tab.codes
+        row:tag("td"):wikitext(template_link)
+        row:tag("td"):wikitext(template_result)
+        row:tag("td"):wikitext(simple_link)
+        row:tag("td"):wikitext(full_link)
+        local redirect_cell = row:tag("td"):attr("dir", "ltr")
+        local codes = lang_data.codes or {}
         table.insert(codes, code)
-        for _, v in pairs(codes) do
-            if isvalid(v) then
-                redirects_cell:tag("code"):wikitext(v)
-                if _ < #codes then
-                    redirects_cell:tag("span"):wikitext(" - ")
-                end
-            end
-        end
+        redirect_cell:wikitext(table.concat(codes, " - "))
     end
 
-    return tostring(list)
+    return tostring(table_builder)
 end
 
-p["اسم لغة"] = function(frame)
-    return p.lang_name(frame)
-end
-
-p["قالب رمز لغة"] = function(frame)
-    return p.lang_code_temp(frame)
-end
-
-p["رمز لغة"] = function(frame)
-    return p.lang_code(frame)
-end
-
-p["قائمة"] = function(frame)
-    return p.list()
-end
+p.lang_name = p.getLanguageName
+p["اسم لغة"] = p.getLanguageName
+p.lang_code_temp = p.tagLanguageCode
+p["قالب رمز لغة"] = p.tagLanguageCode
+p["رمز لغة"] = p.getLanguageCode
+p.lang_code = p.getLanguageCode
+p["قائمة"] = p.generateLanguageList
 
 return p
