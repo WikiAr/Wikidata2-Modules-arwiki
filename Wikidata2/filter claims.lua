@@ -137,24 +137,27 @@ local function claims_offset(claims, startOffset)
 end
 
 local function filter_langs(claims)
-	local claims7 = {}
-	local arabic_id = config.i18n.local_lang_qids
+	local filtered_claims = {}
+	local arabic_ids = config.i18n.local_lang_qids
 
 	for _, statement in pairs(claims) do
-		for prop, id in pairs(arabic_id) do
-			if statement.qualifiers and statement.qualifiers[prop] then
-				for _, v in pairs(statement.qualifiers[prop]) do
-					if v.snaktype == "value" and v.datavalue.value["numeric-id"] == id then
-						table.insert(claims7, statement)
-						break
+		if statement.qualifiers then
+			for prop, id in pairs(arabic_ids) do
+				local qualifier_values = statement.qualifiers[prop]
+				if qualifier_values then
+					for _, v in pairs(qualifier_values) do
+						if v.snaktype == "value" and v.datavalue.value["numeric-id"] == id then
+							table.insert(filtered_claims, statement)
+							break
+						end
 					end
 				end
 			end
 		end
 	end
 
-	if #claims7 > 0 then
-		claims = claims7
+	if #filtered_claims > 0 then
+		claims = filtered_claims
 	end
 
 	return claims
