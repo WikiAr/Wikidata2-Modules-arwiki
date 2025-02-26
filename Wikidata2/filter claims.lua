@@ -12,6 +12,19 @@ local function isvalid(x)
 	return nil
 end
 
+local function table_or_nil(values)
+	local q_values = {}
+	if not isvalid(values) then return nil end
+	if type(values) == "string" then
+		q_values = mw.text.split(values, ",")
+	elseif type(values) == "table" then
+		q_values = values
+	end
+
+	if #q_values == 0 then q_values = nil end
+	return q_values
+end
+
 local function parse_number(value)
 	return (type(value) == "number") and value or tonumber(value)
 end
@@ -44,9 +57,8 @@ local function table_contains(table, element)
 end
 
 local function filter_by_value(claims, option, mode)
-	if type(option) == "string" then
-		option = mw.text.split(option, ",")
-	elseif type(option) ~= "table" then
+	option = table_or_nil(option)
+	if not isvalid(option) then
 		return claims
 	end
 
@@ -83,7 +95,8 @@ local function filter_by_qualifier(claims, option, values, mode)
 	if not isvalid(option) then return claims end
 
 	local qualifier_id = option:upper()
-	values = type(values) == "string" and mw.text.split(values, ",") or values
+	local q_values = table_or_nil(values)
+
 	local filtered_claims = {}
 
 	for _, statement in pairs(claims) do
@@ -91,8 +104,8 @@ local function filter_by_qualifier(claims, option, values, mode)
 
 		if mode == "prefer" then
 			if qualifiers then
-				if isvalid(values) then
-					if any_qualifier_matches(qualifiers, values) then
+				if isvalid(q_values) then
+					if any_qualifier_matches(qualifiers, q_values) then
 						table.insert(filtered_claims, statement)
 					end
 				else
@@ -102,8 +115,8 @@ local function filter_by_qualifier(claims, option, values, mode)
 		elseif mode == "avoid" then
 			if not qualifiers then
 				table.insert(filtered_claims, statement)
-			elseif isvalid(values) then
-				if not any_qualifier_matches(qualifiers, values) then
+			elseif isvalid(q_values) then
+				if not any_qualifier_matches(qualifiers, q_values) then
 					table.insert(filtered_claims, statement)
 				end
 			end
@@ -150,7 +163,7 @@ end
 local function filter_get_only_or_dont(claims, option, f_property, mode)
 	f_property = f_property or "P31"
 	local claims2 = {}
-	local values = mw.text.split(option, ",")
+	local values = table_or_nil(option) or {}
 
 	for _, claim in pairs(claims) do
 		local id = p.get_snak_id(claim)
@@ -185,6 +198,38 @@ local function filter_get_only_or_dont(claims, option, f_property, mode)
 	return claims2
 end
 
+local function filter_numval(claims, numval)
+	if #claims > 1 and #claims > numval then
+		local claimsnumval = {}
+		local ic = 1
+
+		while (numval >= ic) and (#claims >= ic) do
+			table.insert(claimsnumval, claims[ic])
+			ic = ic + 1
+		end
+		claims = claimsnumval
+	end
+
+	return claims
+end
+
+local function filter_first(claims, firstvalue)
+	local first = isvalid(tonumber(firstvalue))
+	if isvalid(first) and #claims > 1 then
+		if #claims > 0 then
+			first = tonumber(first) or 1
+			if first > 0 and first <= #claims then
+				claims = { claims[first] }
+			else
+				claims = { claims[1] }
+			end
+		end
+	elseif isvalid(firstvalue) and #claims > 0 then
+		claims = { claims[1] }
+	end
+	return claims
+end
+
 function p.filter_claims(claims, options)
 	local claims = claims
 
@@ -198,13 +243,13 @@ function p.filter_claims(claims, options)
 		claims = filter_get_only_or_dont(claims, options.dontget, options.dontgetproperty, "dont")
 	end
 
-	local offset = isvalid(parse_number(options.offset))
-	if offset then
+	local offset = parse_number(options.offset)
+	if isvalid(offset) then
 		claims = claims_offset(claims, offset)
 	end
 
-	local limit = isvalid(parse_number(options.limit))
-	if limit then
+	local limit = parse_number(options.limit)
+	if isvalid(limit) then
 		claims = claims_limit(claims, limit)
 	end
 
@@ -230,34 +275,14 @@ function p.filter_claims(claims, options)
 		claims = filter_langs(claims)
 	end
 
-	local firstvalue = options.enbarten or options.firstvalue
-	local first = isvalid(tonumber(firstvalue))
-	if isvalid(first) and #claims > 1 then
-		if #claims > 0 then
-			first = tonumber(first) or 1
-			if first > 0 and first <= #claims then
-				claims = { claims[first] }
-			else
-				claims = { claims[1] }
-			end
-		end
-	elseif isvalid(firstvalue) and #claims > 0 then
-		claims = { claims[1] }
+	local firstvalue = isvalid(options.enbarten) or isvalid(options.firstvalue)
+	if firstvalue then
+		claims = filter_first(claims, firstvalue)
 	end
 
-	local numval = options.numval
-	if numval and type(numval) ~= "number" then
-		numval = tonumber(numval)
-	end
-	if numval and type(numval) == "number" and #claims > 1 and #claims > numval then
-		local claimsnumval = {}
-		local ic = 1
-
-		while (numval >= ic) and (#claims >= ic) do
-			table.insert(claimsnumval, claims[ic])
-			ic = ic + 1
-		end
-		claims = claimsnumval
+	local numval = parse_number(options.numval)
+	if isvalid(numval) then
+		claims = filter_numval(claims, numval)
 	end
 
 	return claims
