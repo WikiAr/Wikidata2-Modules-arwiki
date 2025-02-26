@@ -64,53 +64,53 @@ local function filter_by_value(claims, option, mode)
 	return filtered_claims
 end
 
-local function filter_by_qualifier(claims, option, values, mode)
-	if not isvalid(option) then
-		return claims
+local function any_qualifier_matches(qualifiers, values)
+	if not qualifiers then return false end
+
+	for _, qual in pairs(qualifiers) do
+		if qual.snaktype == "value"
+			and qual.datavalue
+			and qual.datavalue.value
+			and qual.datavalue.value.id
+			and table_contains(values, qual.datavalue.value.id) then
+			return true
+		end
 	end
+	return false
+end
+
+local function filter_by_qualifier(claims, option, values, mode)
+	if not isvalid(option) then return claims end
 
 	local qualifier_id = option:upper()
 	values = type(values) == "string" and mw.text.split(values, ",") or values
-	local claims2 = {}
+	local filtered_claims = {}
 
 	for _, statement in pairs(claims) do
 		local qualifiers = statement.qualifiers and statement.qualifiers[qualifier_id]
+
 		if mode == "prefer" then
 			if qualifiers then
 				if isvalid(values) then
-					for _, quall in pairs(qualifiers) do
-						if quall.snaktype == "value" and table_contains(values, quall.datavalue.value["id"]) then
-							table.insert(claims2, statement)
-							break
-						end
+					if any_qualifier_matches(qualifiers, values) then
+						table.insert(filtered_claims, statement)
 					end
 				else
-					table.insert(claims2, statement)
+					table.insert(filtered_claims, statement)
 				end
 			end
 		elseif mode == "avoid" then
 			if not qualifiers then
-				table.insert(claims2, statement)
+				table.insert(filtered_claims, statement)
 			elseif isvalid(values) then
-				local active = true
-				for _, quall in pairs(qualifiers) do
-					if
-						quall.snaktype == "value" and quall.datavalue and quall.datavalue.value and
-						quall.datavalue.value["id"] and
-						table_contains(values, quall.datavalue.value["id"])
-					then
-						active = false
-						break
-					end
-				end
-				if active then
-					table.insert(claims2, statement)
+				if not any_qualifier_matches(qualifiers, values) then
+					table.insert(filtered_claims, statement)
 				end
 			end
 		end
 	end
 
-	return claims2
+	return filtered_claims
 end
 
 local function claims_limit(claims, maxCount)
