@@ -167,26 +167,20 @@ local function filter_get_only_or_dont(claims, option, f_property, mode)
 	f_property = f_property or "P31"
 	local claims2 = {}
 	local values = table_or_nil(option) or {}
+	local is_dont_mode = (mode == "dont")
 
 	for _, claim in pairs(claims) do
 		local id = p.get_snak_id(claim)
 		if id then
-			local valid = false
-			if mode == "dont" then
-				valid = true
-			end
+			local valid = is_dont_mode
 			local entity = getEntityFromId(id)
 			local t2 = entity:getBestStatements(f_property)
+
 			if t2 and #t2 > 0 then
 				for _, claim2 in pairs(t2) do
 					local snak2 = p.get_snak_id(claim2)
-					-- if table_contains(values, state.item) then
 					if snak2 and table_contains(values, snak2) then
-						if mode == "dont" then
-							valid = false
-						else
-							valid = true
-						end
+						valid = not is_dont_mode
 						break
 					end
 				end
@@ -200,6 +194,7 @@ local function filter_get_only_or_dont(claims, option, f_property, mode)
 
 	return claims2
 end
+
 
 local function filter_numval(claims, numval)
 	if #claims > 1 and #claims > numval then
