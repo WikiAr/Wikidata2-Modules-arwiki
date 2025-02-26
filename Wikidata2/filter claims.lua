@@ -12,6 +12,10 @@ local function isvalid(x)
 	return nil
 end
 
+local function parse_number(value)
+	return (type(value) == "number") and value or tonumber(value)
+end
+
 local function getEntityFromId(id)
 	return isvalid(id) and mw.wikibase.getEntityObject(id) or mw.wikibase.getEntityObject()
 end
@@ -47,15 +51,16 @@ local function filter_by_value(claims, option, mode)
 	end
 
 	local filtered_claims = {}
+
 	for _, claim in pairs(claims) do
-		local ID = p.get_snak_id(claim)
-		local id_in = table_contains(option, ID)
-		if ID then
-			if (not id_in and mode == "avoid") or (id_in and mode == "prefer") then
-				table.insert(filtered_claims, claim)
-			end
+		local snak_id = p.get_snak_id(claim)
+		local is_included = table_contains(option, snak_id)
+
+		if snak_id and ((mode == "avoid" and not is_included) or (mode == "prefer" and is_included)) then
+			table.insert(filtered_claims, claim)
 		end
 	end
+
 	return filtered_claims
 end
 
@@ -105,9 +110,6 @@ local function filter_by_qualifier(claims, option, values, mode)
 	end
 
 	return claims2
-end
-local function parse_number(value)
-	return (type(value) == "number") and value or tonumber(value)
 end
 
 local function claims_limit(claims, maxCount)
