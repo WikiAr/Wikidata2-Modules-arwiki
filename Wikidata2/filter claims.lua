@@ -107,35 +107,18 @@ local function filter_by_qualifier(claims, option, values, mode)
 
 	return claims2
 end
-
-local function claims_limit(claims, limit)
-	local newclaims = {}
-	if type(limit) ~= "number" then
-		limit = tonumber(limit)
-	end
-	if #claims > limit then -- limit is not 0
-		for i = 1, #claims do
-			if i <= limit then
-				newclaims[#newclaims + 1] = claims[i]
-			end
-		end
-		return newclaims
-	end
-	return claims
+local function parse_number(value)
+	return (type(value) == "number") and value or tonumber(value)
 end
 
-local function claims_offset(claims, offset)
-	local offsetclaims = {}
-	if type(offset) ~= "number" then
-		offset = tonumber(offset)
-	end
-	if #claims > offset then -- offset is not 0
-		for i = offset + 1, #claims do
-			offsetclaims[#offsetclaims + 1] = claims[i]
-		end
-		return offsetclaims
-	end
-	return claims
+local function claims_limit(claims, maxCount)
+	if #claims <= maxCount then return claims end
+	return { unpack(claims, 1, maxCount) }
+end
+
+local function claims_offset(claims, startOffset)
+	if #claims <= startOffset then return claims end
+	return { unpack(claims, startOffset + 1, #claims) }
 end
 
 local function filter_langs(claims)
@@ -213,13 +196,13 @@ function p.filter_claims(claims, options)
 		claims = filter_get_only_or_dont(claims, options.dontget, options.dontgetproperty, "dont")
 	end
 
-	local offset = options.offset
-	if isvalid(offset) then
+	local offset = isvalid(parse_number(options.offset))
+	if offset then
 		claims = claims_offset(claims, offset)
 	end
 
-	local limit = options.limit
-	if isvalid(limit) then
+	local limit = isvalid(parse_number(options.limit))
+	if limit then
 		claims = claims_limit(claims, limit)
 	end
 
