@@ -26,7 +26,6 @@ function p.get_snak_id(snak)
 		snak.mainsnak.datavalue.value and
 		snak.mainsnak.datavalue.value.id
 	then
-		--ID = 'Q' .. snak.datavalue.value['numeric-id']
 		return snak.mainsnak.datavalue.value.id
 	end
 end
@@ -47,17 +46,17 @@ local function filter_by_value(claims, option, mode)
 		return claims
 	end
 
-	local filterd_claims = {}
+	local filtered_claims = {}
 	for _, claim in pairs(claims) do
 		local ID = p.get_snak_id(claim)
 		local id_in = table_contains(option, ID)
 		if ID then
 			if (not id_in and mode == "avoid") or (id_in and mode == "prefer") then
-				table.insert(filterd_claims, claim)
+				table.insert(filtered_claims, claim)
 			end
 		end
 	end
-	return filterd_claims
+	return filtered_claims
 end
 
 local function filter_by_qualifier(claims, option, values, mode)
