@@ -12,19 +12,13 @@ local function isvalid(x)
 	return nil
 end
 
-local function isntvalid(x)
-	if not x or x == nil or x == "" then return true end
-	return false
-end
-
-
 local function getEntityFromId(id)
 	return isvalid(id) and mw.wikibase.getEntityObject(id) or mw.wikibase.getEntityObject()
 end
 
 function p.get_snak_id(snak)
-	if
-		snak and snak.type and snak.type == "statement" and snak.mainsnak and snak.mainsnak.snaktype and
+	if snak and snak.type and
+		snak.type == "statement" and snak.mainsnak and snak.mainsnak.snaktype and
 		snak.mainsnak.snaktype == "value" and
 		snak.mainsnak.datavalue and
 		snak.mainsnak.datavalue.type and
@@ -46,100 +40,67 @@ local function table_contains(table, element)
 	return false
 end
 
-local function avoidvalue(claims, options)
-	local avoidvalue = options.avoidvalue
-	if type(avoidvalue) == "string" then
-		avoidvalue = mw.text.split(avoidvalue, ",")
-	elseif type(avoidvalue) ~= "table" then
+local function filter_by_value(claims, option, mode)
+	if type(option) == "string" then
+		option = mw.text.split(option, ",")
+	elseif type(option) ~= "table" then
 		return claims
 	end
 
-	local claims4 = {}
-	for i, j in pairs(claims) do
-		local ID = p.get_snak_id(j)
-		if ID and not table_contains(avoidvalue, ID) then
-			table.insert(claims4, j)
-		end
-	end
-	return claims4
-end
-
-local function prefervalue(claims, options)
-	local prefervalue = options.prefervalue
-	if type(prefervalue) == "string" then
-		prefervalue = mw.text.split(prefervalue, ",")
-	elseif type(prefervalue) ~= "table" then
-		return claims
-	end
-
-	local claims3 = {}
+	local filterd_claims = {}
 	for _, claim in pairs(claims) do
 		local ID = p.get_snak_id(claim)
-		if ID and table_contains(prefervalue, ID) then
-			table.insert(claims3, claim)
+		local id_in = table_contains(option, ID)
+		if ID then
+			if (not id_in and mode == "avoid") or (id_in and mode == "prefer") then
+				table.insert(filterd_claims, claim)
+			end
 		end
 	end
-
-	return claims3
+	return filterd_claims
 end
 
-local function preferqualifier(claims, options)
-	--[[
-	-- options.preferqualifier
-	-- options.preferqualifiervalue
-	]]
-	local preferqualifiers = options.preferqualifier:upper()
+local function filter_by_qualifier(claims, option, values, mode)
+	if not isvalid(option) then
+		return claims
+	end
 
+	local av = option:upper()
+	values = type(values) == "string" and mw.text.split(values, ",") or values
 	local claims2 = {}
-	local preferq_values = mw.text.split(options.preferqualifiervalue or "", ",")
 
 	for _, statement in pairs(claims) do
-		if statement.qualifiers and statement.qualifiers[preferqualifiers] then
-			if isvalid(options.preferqualifiervalue) then
-				for _, quall in pairs(statement.qualifiers[preferqualifiers]) do
-					if quall.snaktype == "value" and table_contains(preferq_values, quall.datavalue.value["id"]) then
-						table.insert(claims2, statement)
+		if mode == "prefer" then
+			if statement.qualifiers and statement.qualifiers[av] then
+				if isvalid(values) then
+					for _, quall in pairs(statement.qualifiers[av]) do
+						if quall.snaktype == "value" and table_contains(values, quall.datavalue.value["id"]) then
+							table.insert(claims2, statement)
+							break
+						end
+					end
+				else
+					table.insert(claims2, statement)
+				end
+			end
+		elseif mode == "avoid" then
+			if not statement.qualifiers or not statement.qualifiers[av] then
+				table.insert(claims2, statement)
+			elseif isvalid(values) then
+				local active = true
+				for _, quall in pairs(statement.qualifiers[av]) do
+					if
+						quall.snaktype == "value" and quall.datavalue and quall.datavalue.value and
+						quall.datavalue.value["id"] and
+						table_contains(avoidqualifiervalue_values, quall.datavalue.value["id"])
+					then
+						active = false
 						break
 					end
 				end
-			else
-				table.insert(claims2, statement)
-			end
-		end
-	end
-	return claims2
-end
-
-local function avoidqualifier(claims, options)
-	-- options.avoidqualifier
-	-- options.avoidqualifiervalue
-	if isntvalid(options.avoidqualifier) then
-		return claims
-	end
-
-	local av = options.avoidqualifier:upper()
-	local avoidqualifiervalue_values =
-		type(options.avoidqualifiervalue) == "string" and mw.text.split(options.avoidqualifiervalue, ",") or
-		options.avoidqualifiervalue
-	local claims2 = {}
-
-	for _, statement in pairs(claims) do
-		if not statement.qualifiers or not statement.qualifiers[av] then
-			table.insert(claims2, statement)
-		elseif isvalid(options.avoidqualifiervalue) then
-			local active = true
-			for _, quall in pairs(statement.qualifiers[av]) do
-				if
-					quall.snaktype == "value" and quall.datavalue and quall.datavalue.value and
-					quall.datavalue.value["id"] and
-					table_contains(avoidqualifiervalue_values, quall.datavalue.value["id"])
-				then
-					active = false
-					break
+				if active then
+					table.insert(claims2, statement)
 				end
-			end
-			if active then
-				table.insert(claims2, statement)
 			end
 		end
 	end
@@ -201,29 +162,30 @@ local function filter_langs(claims)
 	return claims
 end
 
-local function getonly(claims, options)
-	--[[
-	-- options.getonly
-	-- options.getonlyproperty
-	]]
+local function getonly(claims, option, f_property)
+	f_property = f_property or "P31"
 	local claims2 = {}
-	local getonly_values = mw.text.split(options.getonly, ",")
+	local values = mw.text.split(option, ",")
 
 	for _, claim in pairs(claims) do
 		local id = p.get_snak_id(claim)
 		if id then
-			-- local t2 = formatStatements({ property = (options.getonlyproperty or "P31"), entityId = id, noref = "t", raw = "t" })
+			local valid = false
 			local entity = getEntityFromId(id)
-			local t2 = entity:getBestStatements(options.getonlyproperty or "P31")
+			local t2 = entity:getBestStatements(f_property)
 			if t2 and #t2 > 0 then
 				for _, claim2 in pairs(t2) do
 					local snak2 = p.get_snak_id(claim2)
-					-- if table_contains(getonly_values, state.item) then
-					if snak2 and table_contains(getonly_values, snak2) then
-						table.insert(claims2, claim)
+					-- if table_contains(values, state.item) then
+					if snak2 and table_contains(values, snak2) then
+						valid = true
 						break
 					end
 				end
+			end
+
+			if valid then
+				table.insert(claims2, claim)
 			end
 		end
 	end
@@ -231,26 +193,26 @@ local function getonly(claims, options)
 	return claims2
 end
 
-local function dontget(claims, options)
+local function dontget(claims, option, f_property)
 	--[[
 	options.dontget
 	options.dontgetproperty
 	]]
+	f_property = f_property or "P31"
 	local claims2 = {}
-	local dontget_values = mw.text.split(options.dontget, ",")
+	local values = mw.text.split(option, ",")
 
 	for _, claim in pairs(claims) do
 		local id = p.get_snak_id(claim)
 		if id then
 			local valid = true
-			-- local t2 = formatStatements({ property = (options.dontgetproperty or "P31"), entityId = id, noref = "t", raw = "t" })
 			local entity = getEntityFromId(id)
-			local t2 = entity:getBestStatements(options.dontgetproperty or "P31")
+			local t2 = entity:getBestStatements(f_property)
 			if t2 and #t2 > 0 then
 				for _, claim2 in pairs(t2) do
 					local snak2 = p.get_snak_id(claim2)
-					-- if table_contains(dontget_values, state.item) then
-					if snak2 and table_contains(dontget_values, snak2) then
+					-- if table_contains(values, state.item) then
+					if snak2 and table_contains(values, snak2) then
 						valid = false
 						break
 					end
@@ -271,12 +233,12 @@ function p.filter_claims(claims, options)
 
 	-- options.getonly
 	if isvalid(options.getonly) then
-		claims = getonly(claims, options)
+		claims = getonly(claims, options.getonly, options.getonlyproperty)
 	end
 
 	-- options.dontget
 	if isvalid(options.dontget) then
-		claims = dontget(claims, options)
+		claims = dontget(claims, options.dontget, options.dontgetproperty)
 	end
 
 	local offset = options.offset
@@ -290,21 +252,21 @@ function p.filter_claims(claims, options)
 	end
 
 	if isvalid(options.avoidqualifier) then -- to avoid value with a given qualifier
-		claims = avoidqualifier(claims, options)
+		claims = filter_by_qualifier(claims, options.avoidqualifier, options.avoidqualifiervalue, "avoid")
 	end
 
 	if isvalid(options.preferqualifier) then
-		claims = preferqualifier(claims, options)
+		claims = filter_by_qualifier(claims, options.preferqualifier, options.preferqualifiervalue, "prefer")
 	end
 
 	-- options.avoidvalue
 	if isvalid(options.avoidvalue) then
-		claims = avoidvalue(claims, options)
+		claims = filter_by_value(claims, options.avoidvalue, "avoid")
 	end
 
 	-- options.prefervalue
 	if isvalid(options.prefervalue) then
-		claims = prefervalue(claims, options)
+		claims = filter_by_value(claims, options.prefervalue, "prefer")
 	end
 
 	if not isvalid(options.langpref) then
