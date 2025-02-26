@@ -235,16 +235,6 @@ local function filter_langs(claims)
 	return claims
 end
 
---[[
-
-  functions
-
-]]
-
-local function getEntityFromId(id)
-	return isvalid(id) and mw.wikibase.getEntity(id) or mw.wikibase.getEntity()
-end
-
 local function formatError(key)
 	return i18n.errors[key]
 end
@@ -589,7 +579,6 @@ function formatStatements(options, LuaClaims)
 				if mw.wikibase.isValidEntityId(qid) and mw.wikibase.entityExists(qid) then
 					options.entityId = qid
 					options.qid = qid
-					-- entity = getEntityFromId(qid)
 				else
 					mw.addWarning(qid .. i18n.not_valid_qid)
 					qid = nil
@@ -1222,18 +1211,7 @@ end
 
 function sitelink(id, wikisite)
 	local site = wikisite or mw.wikibase.getGlobalSiteId() -- "arwiki"
-	local link = ""
-	--local link = mw.wikibase.getSitelink( id, site ) or ""
-
-	local entity = mw.wikibase.getEntity(id)
-	if
-		entity and entity.sitelinks and entity.sitelinks["" .. site .. ""] and entity.sitelinks["" .. site .. ""].site and
-		entity.sitelinks["" .. site .. ""].title
-	then
-		if entity.sitelinks["" .. site .. ""].site == site then
-			link = entity.sitelinks["" .. site .. ""].title
-		end
-	end
+	local link = mw.wikibase.getSitelink(id, site) or ""
 	return link
 end
 
@@ -1256,13 +1234,6 @@ function wd2.formatAndCat(args)
 	return wd2.formatStatementsFromLua(args)
 end
 
-function wd2.getEntity(id)
-	if type(id) == "table" then
-		return id
-	end
-	return getEntityFromId(id)
-end
-
 function wd2.translate(str, rep1, rep2)
 	str = i18n[str] or str
 	if rep1 and (type(rep1) == "string") then
@@ -1283,17 +1254,17 @@ function wd2.getId(snak)
 end
 
 function wd2.addLinkBack(str, id, property)
-	if not id then
-		id = wd2.getEntity()
+	if type(id) == "table" then
+		id = id.id
 	end
-	if not id then
+	if not isvalid(id) then
+		id = mw.wikibase.getEntityIdForCurrentPage()
+	end
+	if not isvalid(id) then
 		return str
 	end
 	if type(property) == "table" then
 		property = property[1]
-	end
-	if type(id) == "table" then
-		id = id.id
 	end
 	local class = ""
 	if property then
