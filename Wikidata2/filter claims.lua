@@ -195,35 +195,21 @@ local function filter_get_only_or_dont(claims, option, f_property, mode)
 	return claims2
 end
 
-
 local function filter_numval(claims, numval)
 	if #claims > 1 and #claims > numval then
-		local claimsnumval = {}
-		local ic = 1
-
-		while (numval >= ic) and (#claims >= ic) do
-			table.insert(claimsnumval, claims[ic])
-			ic = ic + 1
-		end
-		claims = claimsnumval
+		local claimsnumval = { unpack(claims, 1, numval) }
+		return claimsnumval
 	end
-
 	return claims
 end
 
 local function filter_first(claims, firstvalue)
-	local first = isvalid(tonumber(firstvalue))
+	local first = tonumber(firstvalue)
 	if isvalid(first) and #claims > 1 then
-		if #claims > 0 then
-			first = tonumber(first) or 1
-			if first > 0 and first <= #claims then
-				claims = { claims[first] }
-			else
-				claims = { claims[1] }
-			end
-		end
+		local va = math.max(1, math.min(first, #claims)) -- Ensure 'first' is within bounds
+		return { claims[va] }
 	elseif isvalid(firstvalue) and #claims > 0 then
-		claims = { claims[1] }
+		return { claims[1] }
 	end
 	return claims
 end
