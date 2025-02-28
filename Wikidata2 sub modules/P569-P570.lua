@@ -35,8 +35,11 @@ local function death_age_category(v)
     if pp_config.add_birth_and_death_categories == false then
         return ''
     end
-    local v2 = tostring(v)
-    return format_cat(pp_config.deaths_at_age .. v2)
+    local v2 = tonumber(v)
+    if isvalid(v2) then
+        return format_cat(pp_config.deaths_at_age .. v2)
+    end
+    return ""
 end
 
 
