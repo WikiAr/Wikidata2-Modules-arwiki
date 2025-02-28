@@ -12,17 +12,12 @@ local function isvalid(x)
 	return nil
 end
 
-local function isntvalid(x)
-	if not x or x == nil or x == "" then return true end
-	return false
-end
-
 function p.Subclass(options)
 	local parent = options.parent or ""
 	local id = isvalid(options.id) or mw.wikibase.getEntityIdForCurrentPage()
 
 	local property = options.property or "P31"
-	if isntvalid(parent) or isntvalid(id) or isntvalid(property) then
+	if not isvalid(parent) or not isvalid(id) or not isvalid(property) then
 		return false
 	end
 	local tab = mw.text.split(options.parent, ",")
