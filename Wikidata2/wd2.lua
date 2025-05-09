@@ -46,11 +46,6 @@ local function isvalids(xs)
 	return nil
 end
 
-local function isntvalid(x)
-	if not x or x == nil or x == "" then return true end
-	return false
-end
-
 local function formatFromPattern(str, options)
 	-- [[  function to replace $1 with string  ]]
 	if isvalid(options.pattern) then
@@ -107,7 +102,7 @@ function catewikidatainfo(options)
 	local cat = ""
 	local prop = options.property
 	cat = cat .. " [[" .. i18n.categories.tracking_category .. "|" .. (prop or "wikidata") .. "]]"
-	if isntvalid(options.nolink) then
+	if not isvalid(options.nolink) then
 		return cat
 	else
 		return ""
@@ -168,7 +163,7 @@ function formatcharacters(label, options)
 		return label
 	end
 
-	if isntvalid(formatch) then
+	if not isvalid(formatch) then
 		return label
 	end
 
@@ -188,7 +183,7 @@ function formatcharacters(label, options)
 end
 
 function descriptionIn(langcode, id) -- returns item description for a given language
-	if isntvalid(langcode) then
+	if not isvalid(langcode) then
 		langcode = i18n.local_lang
 	end
 	langcode = mw.text.trim(langcode or "")
@@ -197,7 +192,7 @@ function descriptionIn(langcode, id) -- returns item description for a given lan
 end
 
 function labelIn(langcode, id) -- returns item label for a given language
-	if isntvalid(langcode) then
+	if not isvalid(langcode) then
 		langcode = i18n.local_lang
 	end
 
@@ -344,7 +339,7 @@ function formatOneStatement(statement, options, ref)
 	end
 
 	local s = stat.value
-	if isntvalid(s) then
+	if not isvalid(s) then
 		return { v = value, raw = stat }
 	end
 
@@ -388,7 +383,7 @@ function formatOneStatement(statement, options, ref)
 		s = formated_quals.justthisqual or nil -- We need only the qualifier
 	end
 
-	if isntvalid(s) then
+	if not isvalid(s) then
 		return { v = value, raw = stat }
 	end
 
@@ -436,7 +431,7 @@ function get_claims(entity, qid, property, options)
 	--property = mw.wikibase.resolvePropertyId( property )
 	local claims = {}
 	--Format statement and concat them cleanly
-	if options.rank == "best" or isntvalid(options.rank) then
+	if options.rank == "best" or not isvalid(options.rank) then
 		--claims = entity:getAllStatements( property )
 		if entity then
 			claims = entity:getBestStatements(property)
@@ -518,7 +513,7 @@ function value_table_to_text(options, valuetable)
 		result = priff .. result
 	end
 	local max_num = tonumber(isvalid(options.hidden)) or config.max_claims_to_use_hidelist
-	if isvalids({ options.hidden, options.barlist }) and isntvalid(options["claim-function"]) and isntvalid(options["property-function"]) and #valuetable > max_num then
+	if isvalids({ options.hidden, options.barlist }) and not isvalid(options["claim-function"]) and not isvalid(options["property-function"]) and #valuetable > max_num then
 		if isvalid(options.addTrackingCat) then
 			wd2.track_cat_done = true
 			result = result .. addTrackingCategory(options)
@@ -545,11 +540,11 @@ function add_suffix_pprefix(options, prop)
 end
 
 function formatStatements(options, LuaClaims)
-	if isntvalid(options.property) and isvalid(options.pid) then
+	if not isvalid(options.property) and isvalid(options.pid) then
 		options.property = options.pid
 	end
 
-	if isntvalid(options.property) then
+	if not isvalid(options.property) then
 		return formatError("property_param_not_provided")
 	end
 	local option1 = options.option1
@@ -597,7 +592,7 @@ function formatStatements(options, LuaClaims)
 	if not claims or #claims == 0 then
 		return ""
 	end
-	if isntvalid(options.langpref) then
+	if not isvalid(options.langpref) then
 		claims = filter_langs(claims)
 	end
 	if isvalid(options.sort_before_filter) then
@@ -648,7 +643,7 @@ function formatStatements(options, LuaClaims)
 	if #valuetable > 0 then
 		result = value_table_to_text(options, valuetable) or ""
 	end
-	if isntvalid(result) then
+	if not isvalid(result) then
 		return nil
 	end
 	return result
@@ -767,7 +762,7 @@ function get_property1(options, item)
 	end
 	local caca = ""
 	local size = options.size or ""
-	if isntvalid(size) then
+	if not isvalid(size) then
 		size = "20"
 	end
 	if work_flag then
@@ -775,7 +770,7 @@ function get_property1(options, item)
 			Moduleflags = require("Module:Wikidata2/Flags")
 		end
 		local flag = Moduleflags[item]
-		if isntvalid(flag) then
+		if not isvalid(flag) then
 			flag = formatStatements({
 				property = options.property1,
 				otherproperty = options.otherproperty1,
@@ -794,7 +789,7 @@ function get_property1(options, item)
 			end
 		end
 	end
-	if isntvalid(caca) then
+	if not isvalid(caca) then
 		return formatStatements({
 			property = options.property1,
 			otherproperty = options.otherproperty1,
@@ -814,7 +809,7 @@ end
 function formatsitelink(entityId, options)
 	--[[ function to get only the value with link ]]
 	local link = sitelink(entityId)
-	if isvalid(link) and isntvalid(options.nolink) then
+	if isvalid(link) and not isvalid(options.nolink) then
 		return "[[" .. link .. "]]" .. catewikidatainfo(options)
 	end
 	return link
@@ -975,7 +970,7 @@ end
 
 function formatexternalid(datavalue, datatype, options)
 	local result = formatcharacters(datavalue.value, options)
-	if isntvalid(options.pattern) then
+	if not isvalid(options.pattern) then
 		return { value = result } --just return value
 	end
 	local patter =
@@ -1161,7 +1156,7 @@ function Labelfunction(qid, arlabel, options) -- label with no arwiki sitelink
 	elseif isvalid(arlabel) then
 		value = arlabel
 		--
-	elseif isntvalid(options.justarabic) then
+	elseif not isvalid(options.justarabic) then
 		local use_en_label = isvalids({ options.enlabelcate, options.use_en_labels })
 		if isvalid(en_label) and use_en_label then
 			value = en_label
@@ -1191,7 +1186,7 @@ function formatEntityId(qid, options)
 
 	if isvalid(link) then
 		local linklabel = isvalid(label) or link
-		if (isntvalid(options.nolink)) then
+		if (not isvalid(options.nolink)) then
 			value = "[[:" .. link .. "|" .. formatcharacters(linklabel, options) .. "]]"
 			label = linklabel
 		else
@@ -1337,7 +1332,7 @@ function wd2.formatStatementsFromLua(options, key) --	 main function but to use 
 		return options.value
 	end
 	local s = formatStatements(options, key)
-	if isntvalid(s) then
+	if not isvalid(s) then
 		s = nil
 	end
 	if isvalid(s) then
@@ -1366,7 +1361,7 @@ function wd2.getSiteLink(frame)
 	local site = frame.args[2] or frame.args.site
 	local id = frame.args[1] or frame.args.id
 	local count = frame.args.countsitelinks
-	if isntvalid(id) then
+	if not isvalid(id) then
 		if isvalid(frame.args.page) then
 			id = mw.wikibase.getEntityIdForTitle(frame.args.page)
 		end

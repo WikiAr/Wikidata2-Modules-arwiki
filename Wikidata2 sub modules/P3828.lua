@@ -1,11 +1,11 @@
 local p = {}
 
 p.typeOfKit = {
-	["Q170494"] = "body",
-	["Q223269"] = "shorts",
-	["Q24206679"] = "right_arm",
-	["Q3643394"] = "left_arm",
-	["Q43663"] = "socks"
+	Q170494 = "body",
+	Q223269 = "shorts",
+	Q24206679 = "right_arm",
+	Q3643394 = "left_arm",
+	Q43663 = "socks"
 }
 
 local function isvalid(x)
@@ -88,6 +88,10 @@ local function find_team_Kit(claims, id, title, options)
 	}
 
 	local kitId = find_Kit_type(claims, id)
+	if not isvalid(kitId) then
+		return ""
+	end
+
 	local property_claims = mw.wikibase.getBestStatements(kitId, "P527") or {}
 
 	if not property_claims or #property_claims == 0 then
