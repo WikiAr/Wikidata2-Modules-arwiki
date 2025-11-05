@@ -299,6 +299,7 @@ function p.office3(statement, options)
 	end
 
 	if statement.references and valid_value(options.reff) then
+		options.numberofreferences = options.numberofreferences and options.numberofreferences or 3
 		s = s .. formatReferences(statement, options)
 	end
 
