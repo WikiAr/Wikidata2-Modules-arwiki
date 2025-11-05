@@ -149,7 +149,7 @@ local function result_table(s, office_img, personqid, entity_id, options, qualif
 		electedin = qualifiers.electedin,
 		jurisdiction = qualifiers.P1001,
 		employer = qualifiers.P108,
-		of = qualifiers.P642,
+		of = qualifiers.P2389,
 		P2937 = qualifiers.P2937,
 		P5054 = qualifiers.p5054
 	}
@@ -235,7 +235,7 @@ local function process_qualifiers(statement)
 		series = get_qua("P1545", "true", "", statement),
 		electedin = get_qua("P2715", "", "", statement),
 		P1001 = get_qua("P1001", "", "", statement),
-		P642 = get_qua("P642", "", "", statement),
+		P2389 = get_qua("P2389", "", "", statement),
 		president = get_qua("P325", "", "", statement),
 		premier = get_qua("P6", "", "", statement),
 		p5054 = get_qua("P5054", "", "", statement),
@@ -244,13 +244,13 @@ local function process_qualifiers(statement)
 end
 
 local function office_is_okay(qualifiers, statement)
-	if notvalid_value(statement.qualifiers.P108) and notvalid_value(statement.qualifiers.P642) then
+	if notvalid_value(statement.qualifiers.P108) and notvalid_value(statement.qualifiers.P2389) then
 		return true
 	end
 	if statement.qualifiers.P108 and valid_value(qualifiers.P108) then
 		return true
 	end
-	if statement.qualifiers.P642 and valid_value(qualifiers.P642) then
+	if statement.qualifiers.P2389 and valid_value(qualifiers.P2389) then
 		return true
 	end
 	return false
