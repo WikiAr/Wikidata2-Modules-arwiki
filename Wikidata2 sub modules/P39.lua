@@ -162,11 +162,11 @@ local function get_office_img(qid)
 		property = "P154",
 		otherproperty = "P41",
 		entityId = qid,
-		noref = "true",
+		noref = 1,
 		rank = "all",
-		size = "25",
+		size = 25,
 		image = "image",
-		firstvalue = "true",
+		firstvalue = 1,
 		separator = "",
 		conjunction = ""
 	})
@@ -177,7 +177,7 @@ local function get_female_label(office_id, personqid)
 	local gender = formatStatements({
 		property = 'P21',
 		entityId = personqid,
-		noref = 't',
+		noref = 1,
 		rank = 'all',
 		firstvalue = 't',
 		formatting = 'raw'
@@ -187,7 +187,7 @@ local function get_female_label(office_id, personqid)
 		local fem_label = formatStatements({
 			property = 'P2521',
 			entityId = office_id,
-			noref = 'true',
+			noref = 1,
 			langpref = i18n.local_lang,
 			formatting = 'text',
 			rank = "all"
@@ -199,10 +199,10 @@ end
 
 local function get_qua(property, enbarten, modifytime, statement, options)
 	local ca = formatStatements(
-		{ property = property, illwd2 = "t", firstvalue = enbarten, modifytime = modifytime, noref = options.noref },
+		{ property = property, illwd2 = 1, firstvalue = enbarten, modifytime = modifytime, noref = options.noref },
 		statement.qualifiers) or ""
 	if ca ~= "" then
-		return ca .. addTrackingCategory({ property = property, noicon = "t" })
+		return ca .. addTrackingCategory({ property = property, noicon = 1 })
 	end
 	return ca
 end
@@ -212,28 +212,28 @@ local function process_qualifiers(statement, options)
 		img = formatStatements({
 			property = "P94",
 			otherproperty = "P41",
-			noref = "true",
+			noref = 1,
 			rank = "all",
-			size = "25",
+			size = 25,
 			image = "image",
-			firstvalue = "true",
+			firstvalue = 1,
 			separator = "",
 			conjunction = ""
 		}, statement.qualifiers),
 		P108 = get_qua("P108", "", "", statement, options),
 		P108_raw = formatStatements({
 			property = "P108",
-			noref = "true",
+			noref = 1,
 			rank = "all",
-			firstvalue = "true",
+			firstvalue = 1,
 			formatting = 'raw'
 		}, statement.qualifiers),
-		start = get_qua("P580", "true", "longdate", statement, options),
-		finish = get_qua("P582", "true", "longdate", statement, options),
-		before = get_qua("P1365", "true", "", statement, options),
-		after = get_qua("P1366", "true", "", statement, options),
+		start = get_qua("P580", 1, "longdate", statement, options),
+		finish = get_qua("P582", 1, "longdate", statement, options),
+		before = get_qua("P1365", 1, "", statement, options),
+		after = get_qua("P1366", 1, "", statement, options),
 		constituency = get_qua("P768", "", "", statement, options),
-		series = get_qua("P1545", "true", "", statement, options),
+		series = get_qua("P1545", 1, "", statement, options),
 		electedin = get_qua("P2715", "", "", statement, options),
 		P1001 = get_qua("P1001", "", "", statement, options),
 		P2389 = get_qua("P2389", "", "", statement, options),
@@ -258,6 +258,9 @@ local function office_is_okay(qualifiers, statement)
 end
 
 function p.office3(statement, options)
+	if valid_value(options.reff) then
+		options.noref = 1
+	end
 	local s_tab = formatSnak(statement.mainsnak, options)
 	local s = s_tab.value
 	local sqid = s_tab.item
@@ -295,7 +298,7 @@ function p.office3(statement, options)
 		s = office_label
 	end
 
-	if statement.references and valid_value(options.reff) and not valid_value(options.noref) then
+	if statement.references and valid_value(options.reff) then
 		s = s .. formatReferences(statement, options)
 	end
 
