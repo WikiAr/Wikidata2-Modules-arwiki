@@ -197,8 +197,9 @@ local function get_female_label(office_id, personqid)
 	return ""
 end
 
-local function get_qua(property, enbarten, modifytime, statement)
-	local ca = formatStatements({ property = property, illwd2 = "t", firstvalue = enbarten, modifytime = modifytime },
+local function get_qua(property, enbarten, modifytime, statement, options)
+	local ca = formatStatements(
+		{ property = property, illwd2 = "t", firstvalue = enbarten, modifytime = modifytime, noref = options.noref },
 		statement.qualifiers) or ""
 	if ca ~= "" then
 		return ca .. addTrackingCategory({ property = property, noicon = "t" })
@@ -206,7 +207,7 @@ local function get_qua(property, enbarten, modifytime, statement)
 	return ca
 end
 
-local function process_qualifiers(statement)
+local function process_qualifiers(statement, options)
 	return {
 		img = formatStatements({
 			property = "P94",
@@ -219,7 +220,7 @@ local function process_qualifiers(statement)
 			separator = "",
 			conjunction = ""
 		}, statement.qualifiers),
-		P108 = get_qua("P108", "", "", statement),
+		P108 = get_qua("P108", "", "", statement, options),
 		P108_raw = formatStatements({
 			property = "P108",
 			noref = "true",
@@ -227,19 +228,19 @@ local function process_qualifiers(statement)
 			firstvalue = "true",
 			formatting = 'raw'
 		}, statement.qualifiers),
-		start = get_qua("P580", "true", "longdate", statement),
-		finish = get_qua("P582", "true", "longdate", statement),
-		before = get_qua("P1365", "true", "", statement),
-		after = get_qua("P1366", "true", "", statement),
-		constituency = get_qua("P768", "", "", statement),
-		series = get_qua("P1545", "true", "", statement),
-		electedin = get_qua("P2715", "", "", statement),
-		P1001 = get_qua("P1001", "", "", statement),
-		P2389 = get_qua("P2389", "", "", statement),
-		president = get_qua("P325", "", "", statement),
-		premier = get_qua("P6", "", "", statement),
-		p5054 = get_qua("P5054", "", "", statement),
-		P2937 = get_qua("P2937", "", "", statement)
+		start = get_qua("P580", "true", "longdate", statement, options),
+		finish = get_qua("P582", "true", "longdate", statement, options),
+		before = get_qua("P1365", "true", "", statement, options),
+		after = get_qua("P1366", "true", "", statement, options),
+		constituency = get_qua("P768", "", "", statement, options),
+		series = get_qua("P1545", "true", "", statement, options),
+		electedin = get_qua("P2715", "", "", statement, options),
+		P1001 = get_qua("P1001", "", "", statement, options),
+		P2389 = get_qua("P2389", "", "", statement, options),
+		president = get_qua("P325", "", "", statement, options),
+		premier = get_qua("P6", "", "", statement, options),
+		p5054 = get_qua("P5054", "", "", statement, options),
+		P2937 = get_qua("P2937", "", "", statement, options)
 	}
 end
 
@@ -267,7 +268,7 @@ function p.office3(statement, options)
 
 	local qualifiers = {}
 	if statement.qualifiers then
-		qualifiers = process_qualifiers(statement)
+		qualifiers = process_qualifiers(statement, options)
 	end
 	if not valid_values({ qualifiers.start, qualifiers.finish, qualifiers.constituency, qualifiers.before, qualifiers.after, qualifiers.electedin, qualifiers.P1001, qualifiers.president, qualifiers.P5054 }) then
 		return ""
@@ -288,13 +289,13 @@ function p.office3(statement, options)
 		office_label = formatEntityId(entity_id, { female_label = female_label }).value
 	end
 
-	mw.log("s: ", s, "office_label: ", office_label)
+	-- mw.log("s: ", s, "office_label: ", office_label)
 
 	if valid_value(office_label) then
 		s = office_label
 	end
 
-	if statement.references and options.reff and options.reff ~= "" then
+	if statement.references and valid_value(options.reff) and not valid_value(options.noref) then
 		s = s .. formatReferences(statement, options)
 	end
 
